@@ -3,7 +3,7 @@
 
 ระบบแดชบอร์ดเฝ้าระวังสถานการณ์น้ำแบบ Real-time สำหรับจังหวัดหนองบัวลำภู ครอบคลุมสถานีวัดระดับน้ำ 12 แห่ง ใน 2 ลำน้ำ
 
-### 🔗 Demo: [https://onoshung.github.io/Water-Monitor-NBL/](https://onoshung.github.io/Water-Monitor-NBL/)
+### 🔗 Demo: [https://nsonongbualamphutc-debug.github.io/Nong-Bua-Lam-Phu-Water-Level-Monitoring/]
 
 ---
 
