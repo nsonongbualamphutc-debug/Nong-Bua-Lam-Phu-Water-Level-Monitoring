@@ -1010,6 +1010,126 @@
     animation:fadeIn .3s;
   }
 
+  /* ========== DATE PICKER (Compare with date) ========== */
+  .date-picker-bar{
+    background:linear-gradient(90deg, #fef3c7, var(--panel) 50%);
+    border-radius:var(--radius);padding:12px 18px;margin-bottom:16px;
+    border:1px solid var(--line);box-shadow:var(--shadow);
+    border-left:4px solid #f59e0b;
+    display:flex;gap:12px;align-items:center;flex-wrap:wrap;
+  }
+  .date-picker-bar.viewing-past{
+    background:linear-gradient(90deg, #fef3c7, #fff7ed 60%);
+    animation:viewingPulse 2s ease-in-out infinite;
+  }
+  @keyframes viewingPulse{
+    0%,100%{box-shadow:var(--shadow), 0 0 0 0 rgba(245,158,11,.3)}
+    50%{box-shadow:var(--shadow), 0 0 0 4px rgba(245,158,11,.1)}
+  }
+  .date-picker-icon{
+    width:36px;height:36px;border-radius:10px;
+    background:#f59e0b;color:#fff;
+    display:flex;align-items:center;justify-content:center;
+    font-size:18px;flex-shrink:0;
+  }
+  .date-picker-info{flex:1;min-width:160px}
+  .date-picker-info b{color:var(--ink)}
+  .date-picker-input{
+    padding:8px 12px;border-radius:10px;
+    border:1px solid var(--line);background:#fff;
+    font-family:inherit;font-size:13px;font-weight:600;
+    color:var(--ink);cursor:pointer;
+  }
+  .date-picker-input:focus{outline:none;border-color:#f59e0b}
+  .date-picker-back{
+    padding:8px 14px;border-radius:10px;border:none;
+    background:var(--brand);color:#fff;
+    font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;
+    display:none;
+  }
+  .date-picker-back.show{display:inline-flex;align-items:center;gap:4px}
+
+  /* ========== AI INSIGHT ========== */
+  .ai-card{margin-bottom:16px;border-left:4px solid #ec4899}
+  .ai-content{
+    padding:18px;background:linear-gradient(135deg, #fdf4ff 0%, var(--panel) 60%);
+    font-size:14px;line-height:1.7;color:var(--ink);
+  }
+  body.dark .ai-content{
+    background:linear-gradient(135deg, #4a044e 0%, #1e293b 60%);
+  }
+  .ai-content::before{
+    content:'✨';display:inline-block;margin-right:6px;
+  }
+  .ai-empty{
+    text-align:center;padding:30px 18px;color:var(--ink-2);
+    font-size:13px;
+  }
+  .ai-spinner{
+    display:inline-block;width:20px;height:20px;
+    border:3px solid #f5d0fe;border-top-color:#ec4899;
+    border-radius:50%;animation:spin 1s linear infinite;
+    vertical-align:middle;margin-right:8px;
+  }
+  .ai-meta{
+    font-size:10px;color:var(--muted);
+    padding:6px 18px;background:var(--panel-2);
+    border-top:1px solid var(--line);
+    display:flex;justify-content:space-between;align-items:center;
+  }
+  .ai-source-tag{
+    background:#fce7f3;color:#9f1239;
+    padding:2px 8px;border-radius:999px;
+    font-weight:700;
+  }
+  body.dark .ai-source-tag{background:#831843;color:#fce7f3}
+
+  /* ========== GEOFENCE ALERT ========== */
+  .geofence-banner{
+    background:linear-gradient(135deg, #dc2626, #991b1b);
+    color:#fff;padding:14px 20px;border-radius:var(--radius);
+    margin-bottom:16px;box-shadow:0 8px 24px rgba(220,38,38,.4);
+    display:none;align-items:center;gap:14px;flex-wrap:wrap;
+    animation:dangerGlow 2s ease-in-out infinite;
+    position:relative;overflow:hidden;
+  }
+  .geofence-banner.show{display:flex}
+  .geofence-banner::before{
+    content:'';position:absolute;inset:0;
+    background:radial-gradient(400px 200px at 80% 50%, rgba(255,255,255,.15), transparent 60%);
+    pointer-events:none;
+  }
+  .geofence-icon{
+    width:44px;height:44px;border-radius:50%;
+    background:rgba(255,255,255,.25);
+    display:flex;align-items:center;justify-content:center;
+    font-size:22px;flex-shrink:0;
+    animation:warningPulse 1.5s ease-in-out infinite;
+  }
+  .geofence-body{flex:1;min-width:200px}
+  .geofence-title{font-size:14px;font-weight:800}
+  .geofence-desc{font-size:12px;opacity:.95;margin-top:2px}
+  .geofence-dismiss{
+    background:rgba(255,255,255,.25);color:#fff;border:none;
+    padding:8px 14px;border-radius:10px;
+    font-family:inherit;font-size:12px;font-weight:600;cursor:pointer;
+  }
+  .geofence-dismiss:hover{background:rgba(255,255,255,.35)}
+
+  /* ========== LOOKER STUDIO INFO ========== */
+  .looker-info{
+    background:linear-gradient(135deg, #f0fdf4 0%, var(--panel) 60%);
+    border:1px solid #bbf7d0;border-radius:10px;
+    padding:12px 14px;margin:12px 18px;font-size:11px;
+    color:var(--ink-2);
+  }
+  body.dark .looker-info{background:linear-gradient(135deg, #064e3b 0%, #1e293b 60%);border-color:#065f46}
+  .looker-url-box{
+    background:var(--panel-2);border-radius:8px;padding:8px 12px;
+    margin-top:6px;font-family:monospace;font-size:11px;
+    word-break:break-all;border:1px solid var(--line);
+  }
+
   /* ========== AI INSIGHT CARD (Phase 4) ========== */
   .ai-card{
     margin-bottom:16px;
@@ -1572,6 +1692,27 @@
   <div class="exec-compare" id="execCompare"></div>
 </div>
 
+<!-- GEOFENCE ALERT (auto-show when user near red station) -->
+<div class="geofence-banner" id="geofenceBanner">
+  <div class="geofence-icon">🚨</div>
+  <div class="geofence-body">
+    <div class="geofence-title" id="geofenceTitle">⚠️ คุณอยู่ใกล้พื้นที่เสี่ยง!</div>
+    <div class="geofence-desc" id="geofenceDesc">—</div>
+  </div>
+  <button class="geofence-dismiss" onclick="document.getElementById('geofenceBanner').classList.remove('show')">รับทราบ</button>
+</div>
+
+<!-- COMPARE WITH DATE -->
+<div class="date-picker-bar" id="datePickerBar">
+  <div class="date-picker-icon">📅</div>
+  <div class="date-picker-info">
+    <div style="font-size:13px;font-weight:700;color:var(--ink);" id="dateBarTitle">ดูสถานะวันที่ย้อนหลัง</div>
+    <div style="font-size:12px;color:var(--ink-2);margin-top:2px;" id="dateBarDesc">เลือกวันที่เพื่อดูข้อมูลในอดีต <span class="tip" data-tip="แสดงสถานะของทุกสถานีในวันที่เลือก เปรียบเทียบกับสถานการณ์ปัจจุบันได้">?</span></div>
+  </div>
+  <input type="date" class="date-picker-input" id="datePicker">
+  <button class="date-picker-back" id="datePickerBack" onclick="returnToToday()">⏎ กลับสู่วันนี้</button>
+</div>
+
 <!-- PUSH NOTIFICATION BANNER -->
 <div class="push-banner" id="pushBanner">
   <span style="font-size:18px;">🔔</span>
@@ -1801,7 +1942,15 @@
     <div class="count" id="damCount">—</div>
   </div>
   <div class="dam-grid" id="damGrid"></div>
-  <div class="dam-disclaimer">⚠️ ข้อมูลเขื่อนเป็นค่าจำลอง — ใช้สำหรับ demo · ในการใช้งานจริงควรเชื่อมต่อ API ของ EGAT/RID</div>
+  <div class="dam-disclaimer" id="damDisclaimer">📡 อ่านข้อมูลจาก Sheet Dams · แก้ค่า current_mcm หรือเปิด syncDamsFromAPI() เพื่อ sync จาก EGAT/RID</div>
+</div>
+
+<!-- LOOKER STUDIO INFO -->
+<div class="looker-info">
+  <div style="font-weight:700;color:var(--ink);margin-bottom:4px;">📊 Power BI / Looker Studio Integration</div>
+  ต้องการสร้างรายงานเชิงลึก? เชื่อมต่อ Google Sheet โดยตรงกับ Looker Studio (datastudio.google.com):
+  <div class="looker-url-box" id="lookerUrl">เปิดชีต → Share → Copy link → ใช้เป็น Data Source ใน Looker</div>
+  <div style="margin-top:6px;">รองรับการสร้าง dashboard แบบ embed บนเว็บไซต์อื่น + แชร์ในที่ประชุมได้</div>
 </div>
 
 <!-- HISTORICAL COMPARISON -->
@@ -2030,7 +2179,7 @@
 /* ============================================================
  * CONFIG
  * ============================================================ */
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbzXxY4WHvWjF7qRqaxXLNPKRCItmYwMIn5xYB_fkCF0CImYTNwJf6PxekZbovKE5OF4/exec'; // <<< แก้ตรงนี้หลัง deploy
+const GAS_URL = 'PASTE_YOUR_GOOGLE_APPS_SCRIPT_URL_HERE'; // <<< แก้ตรงนี้หลัง deploy
 const PROVINCE_LAT = 17.2046;
 const PROVINCE_LNG = 102.4260;
 const STORAGE_KEY = 'nbWaterDash.v2';
@@ -2574,6 +2723,7 @@ function setUserLocation(lat,lng,label){
   updateUserLocationOnMap(lat,lng);
   loadWeather(lat,lng,label);
   renderList();
+  checkGeofence();
 }
 
 function getGPS(){
@@ -4513,6 +4663,181 @@ async function loadTMDForecast(){
 }
 
 /* ============================================================
+ * COMPARE WITH DATE — ดูสถานะวันที่ย้อนหลัง (Phase 4)
+ * ============================================================ */
+let viewingDate = null; // null = today, else 'YYYY-MM-DD'
+let liveStations = []; // backup ของ stations จริง
+
+async function loadStationsOnDate(date){
+  if (!GAS_URL || GAS_URL === 'PASTE_YOUR_GOOGLE_APPS_SCRIPT_URL_HERE'){
+    showToast('ต้องเชื่อม GAS_URL เพื่อใช้ฟีเจอร์นี้','error');
+    return;
+  }
+  try{
+    const res = await jsonp(GAS_URL + '?action=getOnDate&date=' + encodeURIComponent(date));
+    if (res && res.ok && Array.isArray(res.stations)){
+      // Backup ครั้งแรกที่เปลี่ยน
+      if (!viewingDate) liveStations = stations.slice();
+      viewingDate = date;
+      stations = res.stations.map(s=> ({...s, currentLevel: s.currentLevel ?? null}));
+      updateDateBarUI();
+      rerender();
+      showToast(`ดูสถานะวันที่ ${date}`,'info');
+    } else {
+      showToast('ไม่พบข้อมูลในวันนั้น','error');
+    }
+  }catch(e){
+    showToast('โหลดไม่สำเร็จ: '+e.message,'error');
+  }
+}
+
+function returnToToday(){
+  if (!viewingDate) return;
+  viewingDate = null;
+  if (liveStations.length) stations = liveStations.slice();
+  updateDateBarUI();
+  rerender();
+  loadStations();
+  showToast('กลับสู่ข้อมูลวันนี้','success');
+}
+
+function updateDateBarUI(){
+  const bar = document.getElementById('datePickerBar');
+  const title = document.getElementById('dateBarTitle');
+  const desc = document.getElementById('dateBarDesc');
+  const back = document.getElementById('datePickerBack');
+  if (viewingDate){
+    bar.classList.add('viewing-past');
+    title.innerHTML = `🔍 กำลังดูข้อมูลย้อนหลัง: <b style="color:#92400e;">${formatThaiDate(viewingDate)}</b>`;
+    desc.textContent = 'ข้อมูลที่แสดงในแดชบอร์ดเป็นของวันนั้น (อ่านอย่างเดียว)';
+    back.classList.add('show');
+  } else {
+    bar.classList.remove('viewing-past');
+    title.textContent = 'ดูสถานะวันที่ย้อนหลัง';
+    desc.innerHTML = 'เลือกวันที่เพื่อดูข้อมูลในอดีต <span class="tip" data-tip="แสดงสถานะของทุกสถานีในวันที่เลือก">?</span>';
+    back.classList.remove('show');
+  }
+}
+
+function formatThaiDate(dateStr){
+  const dt = new Date(dateStr);
+  const m = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+  return `${dt.getDate()} ${m[dt.getMonth()]} ${dt.getFullYear()+543}`;
+}
+
+/* ============================================================
+ * AI INSIGHT — ขอ Claude/Gemini สรุปสถานการณ์
+ * ============================================================ */
+async function generateAIInsight(){
+  const body = document.getElementById('aiBody');
+  const btn = document.getElementById('btnGenerateAI');
+  if (!GAS_URL || GAS_URL === 'PASTE_YOUR_GOOGLE_APPS_SCRIPT_URL_HERE'){
+    showToast('ต้องเชื่อม GAS_URL','error');
+    return;
+  }
+  body.innerHTML = '<div class="ai-empty"><span class="ai-spinner"></span>กำลังให้ AI วิเคราะห์ข้อมูล... (~5-10 วิ)</div>';
+  btn.disabled = true; btn.textContent = '⏳ กำลังประมวล...';
+  try{
+    const res = await jsonp(GAS_URL + '?action=aiInsight&lang=' + encodeURIComponent(currentLang));
+    if (res && res.ok && res.text){
+      body.innerHTML = `
+        <div class="ai-content">${escapeHTML(res.text)}</div>
+        <div class="ai-meta">
+          <span><span class="ai-source-tag">${res.source||'AI'}</span> ${res.generatedAt ? 'สร้างเมื่อ ' + new Date(res.generatedAt).toLocaleTimeString('th-TH') : ''}</span>
+          <span>ใช้เป็นข้อมูลประกอบการตัดสินใจเท่านั้น</span>
+        </div>
+      `;
+    } else {
+      body.innerHTML = `<div class="ai-empty">⚠️ ${res?.error || 'สร้างไม่สำเร็จ'} <br><span style="font-size:11px;opacity:.7;">ตรวจสอบ Script Properties: ANTHROPIC_API_KEY หรือ GEMINI_API_KEY</span></div>`;
+    }
+  }catch(err){
+    body.innerHTML = `<div class="ai-empty">❌ เชื่อมต่อไม่สำเร็จ: ${err.message}</div>`;
+  }finally{
+    btn.disabled = false; btn.textContent = '✨ สร้างคำสรุป';
+  }
+}
+
+function escapeHTML(s){
+  const div = document.createElement('div');
+  div.textContent = s;
+  return div.innerHTML.replace(/\n/g, '<br>');
+}
+
+/* ============================================================
+ * GEOFENCE — ตรวจว่าผู้ใช้อยู่ใกล้สถานีวิกฤติหรือไม่
+ *   ตรวจหลังจาก getGPS() ทุกครั้ง
+ * ============================================================ */
+const GEOFENCE_RADIUS_KM = 5; // ภายใน 5 กม. จากสถานีแดง
+
+function checkGeofence(){
+  if (!userLocation) return;
+  const banner = document.getElementById('geofenceBanner');
+  const desc = document.getElementById('geofenceDesc');
+  const title = document.getElementById('geofenceTitle');
+
+  // หาสถานีแดง/เหลืองภายในรัศมี
+  const nearbyRisks = stations.filter(s => s.status === 'red' || s.status === 'yellow')
+    .map(s => ({station:s, dist: distance(userLocation.lat, userLocation.lng, s.lat, s.lng)}))
+    .filter(o => o.dist <= GEOFENCE_RADIUS_KM)
+    .sort((a,b)=>a.dist-b.dist);
+
+  if (nearbyRisks.length === 0){
+    banner.classList.remove('show');
+    return;
+  }
+
+  const worst = nearbyRisks[0];
+  const isCritical = nearbyRisks.some(r=>r.station.status === 'red');
+  title.textContent = isCritical
+    ? '🚨 คุณอยู่ใกล้สถานีในสถานะวิกฤติ!'
+    : '⚠️ คุณอยู่ใกล้สถานีเฝ้าระวัง';
+  desc.innerHTML = `สถานี <b>${worst.station.name}</b> ห่างจากตำแหน่งคุณ <b>${worst.dist.toFixed(1)} กม.</b> · ${nearbyRisks.length} สถานีเสี่ยงในรัศมี ${GEOFENCE_RADIUS_KM} กม.`;
+  banner.classList.add('show');
+
+  // ส่ง notification ถ้าเปิดใช้
+  if (isCritical && 'Notification' in window && Notification.permission === 'granted'){
+    try{
+      new Notification('🚨 สถานการณ์น้ำใกล้คุณ', {
+        body: `${worst.station.name} อยู่ในสถานะวิกฤติ ห่าง ${worst.dist.toFixed(1)} กม.`,
+        icon: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"%3E%3Crect width="100" height="100" rx="22" fill="%23dc2626"/%3E%3Ctext x="50" y="70" text-anchor="middle" font-size="60"%3E🚨%3C/text%3E%3C/svg%3E',
+        tag: 'geofence-alert'
+      });
+    }catch(e){}
+  }
+}
+
+/* ============================================================
+ * DAMS — โหลดจาก Sheet (แทนของจำลอง)
+ * ============================================================ */
+async function loadDamsFromSheet(){
+  if (!GAS_URL || GAS_URL === 'PASTE_YOUR_GOOGLE_APPS_SCRIPT_URL_HERE') return;
+  try{
+    const res = await jsonp(GAS_URL + '?action=getDams');
+    if (res && res.ok && Array.isArray(res.dams) && res.dams.length){
+      // Override DAMS array
+      DAMS.length = 0;
+      res.dams.forEach(d=>{
+        DAMS.push({
+          id: d.id,
+          name: d.name,
+          name_en: d.name,
+          province: d.province,
+          province_en: d.province,
+          lat: Number(d.lat),
+          lng: Number(d.lng),
+          capacity_mcm: Number(d.capacity_mcm),
+          current_mcm: Number(d.current_mcm),
+          type: 'multi-purpose',
+          updatedAt: d.updatedAt
+        });
+      });
+      renderDamPanel();
+      renderDamMarkers();
+    }
+  }catch(e){}
+}
+
+/* ============================================================
  * ORCHESTRATION
  * ============================================================ */
 function rerender(){
@@ -4942,6 +5267,16 @@ document.addEventListener('DOMContentLoaded', async ()=>{
   document.getElementById('btnDark').addEventListener('click', toggleDark);
   document.getElementById('btnTV').addEventListener('click', toggleTV);
   document.getElementById('btnRefreshHist').addEventListener('click', loadHistComparison);
+  document.getElementById('btnGenerateAI').addEventListener('click', generateAIInsight);
+
+  // Date picker (compare with date)
+  const dp = document.getElementById('datePicker');
+  if (dp){
+    dp.max = new Date().toISOString().slice(0,10); // ห้ามอนาคต
+    dp.addEventListener('change', e=>{
+      if (e.target.value) loadStationsOnDate(e.target.value);
+    });
+  }
 
   // Lang switch
   document.querySelectorAll('.lang-btn').forEach(b=>{
@@ -4980,6 +5315,7 @@ document.addEventListener('DOMContentLoaded', async ()=>{
 
   await loadStations();
   await loadCurrentUser();
+  await loadDamsFromSheet();
   populateDistricts();
   populateDailyStationSelect();
   populateDualStations();
@@ -4990,20 +5326,24 @@ document.addEventListener('DOMContentLoaded', async ()=>{
   await initRadar();
   await loadRainfallRanking();
   loadTMDForecast();
-  // re-render heat map after rainfall data
   if (layerVisible.rainheat) renderHeatMap();
 
   loadWeather(PROVINCE_LAT, PROVINCE_LNG, 'อ.เมืองหนองบัวลำภู');
 
   // refresh every 5 min
   setInterval(async ()=>{
+    if (viewingDate) return; // ไม่ refresh ถ้ากำลังดูข้อมูลย้อนหลัง
     setRefreshing();
     await loadStations();
     rerender();
     await loadDailyHistory();
     await loadCompliance();
-    if (userLocation) loadWeather(userLocation.lat, userLocation.lng, document.getElementById('cwLocation').textContent);
-    else loadWeather(PROVINCE_LAT, PROVINCE_LNG, 'อ.เมืองหนองบัวลำภู');
+    if (userLocation){
+      loadWeather(userLocation.lat, userLocation.lng, document.getElementById('cwLocation').textContent);
+      checkGeofence();
+    } else {
+      loadWeather(PROVINCE_LAT, PROVINCE_LNG, 'อ.เมืองหนองบัวลำภู');
+    }
   }, 5*60*1000);
 
   setInterval(async ()=>{
