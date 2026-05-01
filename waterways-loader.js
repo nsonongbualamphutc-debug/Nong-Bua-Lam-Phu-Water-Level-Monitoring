@@ -1,26 +1,21 @@
 /**
- * waterways-loader.js
+ * waterways-loader.js (v3 - enhanced)
  * ระบบโหลดเส้นทางน้ำจริงของจังหวัดหนองบัวลำภูจาก OpenStreetMap
  *
- * - ครั้งแรก: ดึงข้อมูลจาก Overpass API (ใช้เวลา 3-10 วินาที)
- * - ครั้งต่อไป: โหลดจาก localStorage (ทันที)
- * - ถ้า API ล่ม: ใช้ fallback GeoJSON ที่ฝังในไฟล์
- *
- * วิธีใช้:
- *   loadNBPWaterways(map).then(layer => {
- *     console.log('เพิ่มเส้นทางน้ำเรียบร้อย');
- *   });
+ * v3 features:
+ * - ลำน้ำพะเนียง/ลำน้ำโมง เน้นให้เด่นกว่าสายอื่น (สีเข้ม + เส้นหนา)
+ * - แสดงชื่อทุกลำน้ำ/ลำห้วยที่มีชื่อ (ตามระดับ zoom)
+ * - คลิกที่เส้นน้ำใดๆ → popup แสดงรายละเอียด + ลิงก์ Google Maps
+ * - Tooltip แสดงชื่อตอน hover
  */
 
 (function () {
   "use strict";
 
-  // ===== CONFIG =====
-  const CACHE_KEY = "nbp_waterways_v2";
+  const CACHE_KEY = "nbp_waterways_v3";
   const CACHE_TTL_DAYS = 30;
-  const BBOX = [16.95, 101.85, 17.85, 102.55]; // S, W, N, E
+  const BBOX = [16.95, 101.85, 17.85, 102.55];
 
-  // Mirror servers ของ Overpass API (ลองตามลำดับ)
   const OVERPASS_MIRRORS = [
     "https://overpass-api.de/api/interpreter",
     "https://overpass.kumi.systems/api/interpreter",
@@ -28,7 +23,6 @@
     "https://overpass.private.coffee/api/interpreter",
   ];
 
-  // Overpass QL query — ดึงเส้นทางน้ำในเขตจังหวัด
   const OVERPASS_QUERY = `
 [out:json][timeout:60];
 (
@@ -39,14 +33,33 @@
 out geom;
 `;
 
-  // ===== STYLES สำหรับเส้นทางน้ำแต่ละประเภท =====
-  const WATERWAY_STYLES = {
-    river: { color: "#0284c7", weight: 4, opacity: 0.85 },
-    canal: { color: "#0ea5e9", weight: 3, opacity: 0.75 },
-    stream: { color: "#38bdf8", weight: 1.8, opacity: 0.6 },
-    drain: { color: "#7dd3fc", weight: 1.2, opacity: 0.5 },
-    waterbody: { color: "#0284c7", weight: 1, opacity: 0.85, fillColor: "#7dd3fc", fillOpacity: 0.45 },
+  // ลำน้ำหลักของหนองบัวลำภู (เน้นให้เด่นเป็นพิเศษ)
+  const HIGHLIGHTED_RIVERS = [
+    "ลำน้ำพะเนียง", "ลำพะเนียง", "พะเนียง",
+    "ลำน้ำโมง", "ลำโมง", "โมง",
+    "ลำพอง", "ลำห้วยทราย",
+  ];
+
+  function isHighlighted(name) {
+    if (!name) return false;
+    return HIGHLIGHTED_RIVERS.some(h => name.indexOf(h) !== -1);
+  }
+
+  // ===== STYLES =====
+  const STYLES = {
+    river_highlight: { color: "#075985", weight: 5, opacity: 0.95 },
+    river: { color: "#0284c7", weight: 3.5, opacity: 0.85 },
+    canal: { color: "#0ea5e9", weight: 2.5, opacity: 0.8 },
+    stream: { color: "#38bdf8", weight: 1.8, opacity: 0.7 },
+    drain: { color: "#7dd3fc", weight: 1.2, opacity: 0.55 },
+    waterbody_highlight: { color: "#075985", weight: 1.5, opacity: 0.9, fillColor: "#7dd3fc", fillOpacity: 0.55 },
+    waterbody: { color: "#0284c7", weight: 1, opacity: 0.85, fillColor: "#bae6fd", fillOpacity: 0.45 },
     other: { color: "#7dd3fc", weight: 1, opacity: 0.5 },
+  };
+
+  const TYPE_LABELS = {
+    river: "แม่น้ำ", canal: "คลอง", stream: "ลำธาร",
+    drain: "ทางระบายน้ำ", waterbody: "แหล่งน้ำ", other: "เส้นน้ำ"
   };
 
   // ===== ฟังก์ชันหลัก =====
@@ -60,7 +73,6 @@ out geom;
       return renderToMap(map, geojson, options);
     }
 
-    // ลองดึงจาก Overpass
     onProgress("กำลังโหลดเส้นทางน้ำจาก OpenStreetMap...");
     try {
       geojson = await fetchFromOverpass(onProgress);
@@ -68,21 +80,19 @@ out geom;
       onProgress(`โหลดเส้นทางน้ำสำเร็จ (${geojson.features.length} เส้น)`);
       return renderToMap(map, geojson, options);
     } catch (err) {
-      console.warn("ไม่สามารถโหลดจาก Overpass ได้, ใช้ fallback:", err);
+      console.warn("ไม่สามารถโหลดจาก Overpass ได้:", err);
       onProgress("ใช้ข้อมูลเส้นทางน้ำสำรอง");
       geojson = getFallbackGeoJSON();
       return renderToMap(map, geojson, options);
     }
   };
 
-  // ===== โหลดจาก localStorage =====
   function loadFromCache() {
     try {
       const raw = localStorage.getItem(CACHE_KEY);
       if (!raw) return null;
       const obj = JSON.parse(raw);
-      const ageMs = Date.now() - (obj.savedAt || 0);
-      const ageDays = ageMs / (1000 * 60 * 60 * 24);
+      const ageDays = (Date.now() - (obj.savedAt || 0)) / (1000 * 60 * 60 * 24);
       if (ageDays > CACHE_TTL_DAYS) {
         localStorage.removeItem(CACHE_KEY);
         return null;
@@ -95,16 +105,12 @@ out geom;
 
   function saveToCache(geojson) {
     try {
-      localStorage.setItem(
-        CACHE_KEY,
-        JSON.stringify({ savedAt: Date.now(), geojson: geojson })
-      );
+      localStorage.setItem(CACHE_KEY, JSON.stringify({ savedAt: Date.now(), geojson: geojson }));
     } catch (e) {
       console.warn("Cache save failed:", e);
     }
   }
 
-  // ===== Fetch จาก Overpass API (ลอง mirror หลายตัว) =====
   async function fetchFromOverpass(onProgress) {
     let lastErr;
     for (const url of OVERPASS_MIRRORS) {
@@ -126,12 +132,11 @@ out geom;
     throw lastErr || new Error("All mirrors failed");
   }
 
-  // ===== แปลง Overpass JSON เป็น GeoJSON =====
   function overpassToGeoJSON(overpass) {
     const features = [];
     for (const el of overpass.elements || []) {
       if (el.type !== "way" || !el.geometry) continue;
-      const coords = el.geometry.map((p) => [p.lon, p.lat]);
+      const coords = el.geometry.map(p => [p.lon, p.lat]);
       if (coords.length < 2) continue;
 
       const tags = el.tags || {};
@@ -151,119 +156,186 @@ out geom;
         coords[0][0] === coords[coords.length - 1][0] &&
         coords[0][1] === coords[coords.length - 1][1];
 
-      const geometry = isClosed
-        ? { type: "Polygon", coordinates: [coords] }
-        : { type: "LineString", coordinates: coords };
-
       features.push({
         type: "Feature",
-        geometry: geometry,
+        geometry: isClosed
+          ? { type: "Polygon", coordinates: [coords] }
+          : { type: "LineString", coordinates: coords },
         properties: {
           id: el.id,
           type: type,
           name: tags["name:th"] || tags.name || "",
           name_en: tags["name:en"] || "",
+          waterway: waterway,
         },
       });
     }
     return { type: "FeatureCollection", features: features };
   }
 
-  // ===== Render ลงแผนที่ Leaflet =====
+  // ===== Render =====
   function renderToMap(map, geojson, options) {
-    const showLabels = options.showLabels !== false;
-    const minZoomForStreams = options.minZoomForStreams || 12;
+    const minZoomForStreams = options.minZoomForStreams || 11;
+    const minZoomForLabels = options.minZoomForLabels || 12;
+    const minZoomForSmallLabels = options.minZoomForSmallLabels || 14;
 
-    // แยกเป็น layer ตามประเภท เพื่อจัดการ z-order
-    const layers = {
-      streams: L.featureGroup(),
+    const groups = {
       drains: L.featureGroup(),
+      streams: L.featureGroup(),
       waterbodies: L.featureGroup(),
       canals: L.featureGroup(),
       rivers: L.featureGroup(),
+      labels: L.featureGroup(),
     };
 
-    let riverNamesShown = new Set();
+    const labelMarkers = [];
 
     L.geoJSON(geojson, {
       style: function (feature) {
         const t = feature.properties.type;
-        return WATERWAY_STYLES[t] || WATERWAY_STYLES.other;
+        const name = feature.properties.name;
+        if (t === "river" && isHighlighted(name)) return STYLES.river_highlight;
+        if (t === "waterbody" && isHighlighted(name)) return STYLES.waterbody_highlight;
+        return STYLES[t] || STYLES.other;
       },
       onEachFeature: function (feature, layer) {
         const p = feature.properties;
         const t = p.type;
+        const name = p.name || "(ไม่มีชื่อ)";
+        const highlighted = isHighlighted(p.name);
+        const typeLabel = TYPE_LABELS[t] || "เส้นน้ำ";
 
-        // Tooltip ชื่อแม่น้ำ
+        // Tooltip (hover)
         if (p.name) {
           layer.bindTooltip(p.name, {
             sticky: true,
             direction: "top",
-            className: "waterway-tooltip",
+            className: "waterway-tooltip" + (highlighted ? " highlight" : ""),
           });
         }
 
-        // จัดเข้า group ตามประเภท
-        if (t === "river") layers.rivers.addLayer(layer);
-        else if (t === "canal") layers.canals.addLayer(layer);
-        else if (t === "waterbody") layers.waterbodies.addLayer(layer);
-        else if (t === "drain") layers.drains.addLayer(layer);
-        else layers.streams.addLayer(layer);
+        // Popup (click)
+        const center = getFeatureCenter(feature);
+        const gmapsUrl = center
+          ? `https://www.google.com/maps/search/?api=1&query=${center[1]},${center[0]}`
+          : "#";
 
-        // วาดชื่อแม่น้ำหลักลงบนแผนที่ (เฉพาะ river ที่มีชื่อ)
-        if (showLabels && t === "river" && p.name && !riverNamesShown.has(p.name)) {
-          riverNamesShown.add(p.name);
-          try {
-            const center = layer.getBounds().getCenter();
-            L.marker(center, {
-              icon: L.divIcon({
-                className: "river-label",
-                html: `<span>${p.name}</span>`,
-                iconSize: null,
-              }),
-              interactive: false,
-            }).addTo(layers.rivers);
-          } catch (e) {}
+        const popupContent = `
+          <div class="waterway-popup">
+            <div class="wp-title">${highlighted ? '⭐ ' : ''}${name}</div>
+            <div class="wp-type">${typeLabel}${p.name_en ? ' · ' + p.name_en : ''}</div>
+            ${highlighted ? '<div class="wp-badge">ลำน้ำหลัก</div>' : ''}
+            <div class="wp-actions">
+              <a href="${gmapsUrl}" target="_blank" rel="noopener">📍 เปิดใน Google Maps</a>
+            </div>
+          </div>
+        `;
+        layer.bindPopup(popupContent, { className: "waterway-popup-wrap", maxWidth: 260 });
+
+        // จัดเข้า group
+        if (t === "river") groups.rivers.addLayer(layer);
+        else if (t === "canal") groups.canals.addLayer(layer);
+        else if (t === "waterbody") groups.waterbodies.addLayer(layer);
+        else if (t === "drain") groups.drains.addLayer(layer);
+        else groups.streams.addLayer(layer);
+
+        // Label บนแผนที่
+        if (p.name && center) {
+          let importance = 1;
+          if (highlighted) importance = 5;
+          else if (t === "river") importance = 4;
+          else if (t === "canal") importance = 3;
+          else if (t === "waterbody") importance = 3;
+          else if (t === "stream") importance = 2;
+          else importance = 1;
+
+          let labelSize = "sm";
+          if (importance >= 5) labelSize = "xl";
+          else if (importance >= 4) labelSize = "lg";
+          else if (importance >= 3) labelSize = "md";
+
+          const marker = L.marker([center[1], center[0]], {
+            icon: L.divIcon({
+              className: `river-label ${labelSize}${highlighted ? ' highlight' : ''}`,
+              html: `<span>${p.name}</span>`,
+              iconSize: null,
+            }),
+            interactive: false,
+            zIndexOffset: importance * 100,
+          });
+
+          marker._importance = importance;
+          labelMarkers.push(marker);
         }
       },
     });
 
-    // เพิ่มลงแผนที่ตามลำดับ z-order (ล่างก่อน บนทีหลัง)
-    layers.drains.addTo(map);
-    layers.streams.addTo(map);
-    layers.waterbodies.addTo(map);
-    layers.canals.addTo(map);
-    layers.rivers.addTo(map);
+    groups.drains.addTo(map);
+    groups.streams.addTo(map);
+    groups.waterbodies.addTo(map);
+    groups.canals.addTo(map);
+    groups.rivers.addTo(map);
+    groups.labels.addTo(map);
 
-    // ซ่อน streams/drains เมื่อ zoom ต่ำ
     function updateVisibility() {
       const z = map.getZoom();
+
       if (z < minZoomForStreams) {
-        if (map.hasLayer(layers.streams)) map.removeLayer(layers.streams);
-        if (map.hasLayer(layers.drains)) map.removeLayer(layers.drains);
+        if (map.hasLayer(groups.streams)) map.removeLayer(groups.streams);
+        if (map.hasLayer(groups.drains)) map.removeLayer(groups.drains);
       } else {
-        if (!map.hasLayer(layers.streams)) layers.streams.addTo(map);
-        if (!map.hasLayer(layers.drains)) layers.drains.addTo(map);
+        if (!map.hasLayer(groups.streams)) groups.streams.addTo(map);
+        if (!map.hasLayer(groups.drains)) groups.drains.addTo(map);
       }
+
+      labelMarkers.forEach(m => {
+        const imp = m._importance;
+        let shouldShow = false;
+        if (imp >= 5) shouldShow = z >= 9;
+        else if (imp >= 4) shouldShow = z >= 10;
+        else if (imp >= 3) shouldShow = z >= 11;
+        else if (imp >= 2) shouldShow = z >= minZoomForLabels;
+        else shouldShow = z >= minZoomForSmallLabels;
+
+        if (shouldShow && !groups.labels.hasLayer(m)) {
+          groups.labels.addLayer(m);
+        } else if (!shouldShow && groups.labels.hasLayer(m)) {
+          groups.labels.removeLayer(m);
+        }
+      });
     }
+
     map.on("zoomend", updateVisibility);
     updateVisibility();
 
     return {
-      layers: layers,
+      groups: groups,
       featureCount: geojson.features.length,
-      remove: function () {
-        Object.values(layers).forEach((l) => map.removeLayer(l));
-      },
+      labelCount: labelMarkers.length,
+      remove: function () { Object.values(groups).forEach(g => map.removeLayer(g)); },
     };
   }
 
-  // ===== FALLBACK GEOJSON (เส้นทางน้ำหลักที่แกะพิกัดมา) =====
+  function getFeatureCenter(feature) {
+    const g = feature.geometry;
+    if (g.type === "LineString") {
+      const coords = g.coordinates;
+      if (coords.length === 0) return null;
+      const mid = coords[Math.floor(coords.length / 2)];
+      return [mid[0], mid[1]];
+    } else if (g.type === "Polygon") {
+      const ring = g.coordinates[0];
+      let sx = 0, sy = 0;
+      for (const c of ring) { sx += c[0]; sy += c[1]; }
+      return [sx / ring.length, sy / ring.length];
+    }
+    return null;
+  }
+
   function getFallbackGeoJSON() {
     return {
       type: "FeatureCollection",
       features: [
-        // ลำน้ำพะเนียง (สายหลัก) — ตัดจากเหนือลงใต้ผ่านอำเภอนาวัง นากลาง เมือง
         {
           type: "Feature",
           geometry: {
@@ -279,7 +351,6 @@ out geom;
           },
           properties: { type: "river", name: "ลำน้ำพะเนียง", name_en: "Phaniang River" },
         },
-        // ลำน้ำโมง (สายหลัก) — ในอำเภอสุวรรณคูหา
         {
           type: "Feature",
           geometry: {
@@ -292,7 +363,6 @@ out geom;
           },
           properties: { type: "river", name: "ลำน้ำโมง", name_en: "Mong River" },
         },
-        // หนองบัว (อ่างเก็บน้ำใจกลางเมือง)
         {
           type: "Feature",
           geometry: {
@@ -310,14 +380,13 @@ out geom;
   }
 })();
 
-// ===== CSS สำหรับ tooltip และ label =====
 (function injectCSS() {
   if (document.getElementById("waterways-css")) return;
   const style = document.createElement("style");
   style.id = "waterways-css";
   style.textContent = `
     .waterway-tooltip {
-      background: rgba(255,255,255,0.95) !important;
+      background: rgba(255,255,255,0.97) !important;
       border: 1px solid #0284c7 !important;
       color: #0c4a6e !important;
       font-family: 'Sarabun', sans-serif !important;
@@ -327,25 +396,92 @@ out geom;
       border-radius: 6px !important;
       box-shadow: 0 2px 8px rgba(0,0,0,0.15) !important;
     }
+    .waterway-tooltip.highlight {
+      background: #0c4a6e !important;
+      color: white !important;
+      border-color: #075985 !important;
+      font-size: 13px !important;
+    }
     .waterway-tooltip::before { display: none !important; }
+
+    .waterway-popup-wrap .leaflet-popup-content-wrapper {
+      border-radius: 10px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    }
+    .waterway-popup-wrap .leaflet-popup-content { margin: 0; }
+    .waterway-popup {
+      font-family: 'Sarabun', sans-serif;
+      padding: 12px 14px;
+      min-width: 180px;
+    }
+    .waterway-popup .wp-title {
+      font-weight: 700;
+      font-size: 15px;
+      color: #0c4a6e;
+      margin-bottom: 4px;
+    }
+    .waterway-popup .wp-type {
+      font-size: 11px;
+      color: #64748b;
+      margin-bottom: 8px;
+    }
+    .waterway-popup .wp-badge {
+      display: inline-block;
+      background: linear-gradient(135deg, #0284c7, #0ea5e9);
+      color: white;
+      font-size: 10px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 12px;
+      margin-bottom: 8px;
+    }
+    .waterway-popup .wp-actions {
+      border-top: 1px solid #e2e8f0;
+      padding-top: 8px;
+      margin-top: 8px;
+    }
+    .waterway-popup .wp-actions a {
+      font-size: 12px;
+      color: #0284c7;
+      text-decoration: none;
+      font-weight: 500;
+    }
+    .waterway-popup .wp-actions a:hover { text-decoration: underline; }
+
     .river-label {
       background: transparent !important;
       border: none !important;
       pointer-events: none;
+      white-space: nowrap;
     }
     .river-label span {
       display: inline-block;
       font-family: 'Sarabun', sans-serif;
-      font-size: 11px;
       font-weight: 700;
       color: #0c4a6e;
       text-shadow:
-        -1px -1px 0 #fff, 1px -1px 0 #fff,
-        -1px 1px 0 #fff, 1px 1px 0 #fff,
-        0 0 4px #fff;
-      white-space: nowrap;
+        -1.5px -1.5px 0 rgba(255,255,255,0.95),
+        1.5px -1.5px 0 rgba(255,255,255,0.95),
+        -1.5px 1.5px 0 rgba(255,255,255,0.95),
+        1.5px 1.5px 0 rgba(255,255,255,0.95),
+        0 0 6px rgba(255,255,255,0.95);
       transform: translate(-50%, -50%);
+      letter-spacing: 0.3px;
+    }
+    .river-label.sm span { font-size: 10px; opacity: 0.85; }
+    .river-label.md span { font-size: 11px; }
+    .river-label.lg span { font-size: 12px; }
+    .river-label.xl span {
+      font-size: 14px;
+      color: #075985;
       letter-spacing: 0.5px;
+    }
+    .river-label.highlight span {
+      color: #075985;
+      text-shadow:
+        -2px -2px 0 #fff, 2px -2px 0 #fff,
+        -2px 2px 0 #fff, 2px 2px 0 #fff,
+        0 0 8px #fff, 0 0 8px #fff;
     }
   `;
   document.head.appendChild(style);
