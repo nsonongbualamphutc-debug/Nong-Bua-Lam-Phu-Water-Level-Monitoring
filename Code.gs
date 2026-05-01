@@ -145,34 +145,6 @@ function setupSheets(){
   da.setFrozenRows(1);
   da.getRange('H1').setNote('Source: manual / egat / rid (ระบบจะ sync ตาม source อัตโนมัติถ้าตั้ง trigger)');
 
-  // --- Rules sheet (Custom alert rules) ---
-  let rs = ss.getSheetByName(SHEET_RULES);
-  if (!rs) rs = ss.insertSheet(SHEET_RULES);
-  rs.clear();
-  const rsHeader = ['id','name','condition','action','channel','active','lastFired','note'];
-  rs.getRange(1,1,1,rsHeader.length).setValues([rsHeader]).setFontWeight('bold').setBackground('#a855f7').setFontColor('#fff');
-  const rsSample = [
-    [1, 'เตือนเมื่อมีสถานีวิกฤติ', 'red>=1', 'notify', 'line', true, '', 'แจ้งเมื่อมีสถานีใดเป็นธงแดง'],
-    [2, 'เตือนเมื่อฝนตกหนัก', 'rain24h>=50', 'notify', 'line,telegram', false, '', 'ตัวอย่าง — เปิดเมื่อต้องการ'],
-    [3, 'เตือนเมื่อเฝ้าระวัง 3 สถานี', 'yellow>=3', 'notify', 'line', false, '', 'ตัวอย่าง'],
-    [4, 'รายงาน 7:00 + 17:00', 'time=07:00,17:00', 'report', 'line', false, '', 'รายงาน 2 ครั้ง/วัน'],
-  ];
-  rs.getRange(2,1,rsSample.length,rsHeader.length).setValues(rsSample);
-  rs.setFrozenRows(1);
-  rs.autoResizeColumns(1,rsHeader.length);
-  rs.getRange('C1').setNote(
-    'Conditions:\n' +
-    '• red>=N : สถานีวิกฤติมากกว่าเท่ากับ N\n' +
-    '• yellow>=N : สถานีเฝ้าระวังมากกว่าเท่ากับ N\n' +
-    '• rain24h>=N : ฝนสะสม 24 ชม. มากกว่าเท่ากับ N มม.\n' +
-    '• rainForecast3d>=N : ฝนพยากรณ์ 3 วัน >= N มม.\n' +
-    '• missing>=N : สถานีที่ยังไม่กรอกวันนี้ >= N\n' +
-    '• status=red,station=4 : เงื่อนไขซับซ้อน (และ)\n' +
-    '• time=HH:MM : รายงานเวลาที่กำหนด'
-  );
-  rs.getRange('D1').setNote('Actions: notify (แจ้งเตือน), report (สรุปรายงาน)');
-  rs.getRange('E1').setNote('Channels: line, telegram, line+telegram');
-
   SpreadsheetApp.getUi().alert(
     '✅ Setup เรียบร้อย\n\n' +
     'สร้าง 8 ชีต: Stations, Current, History, Audit, RateLimit, Users, Rules, Dams\n\n' +
