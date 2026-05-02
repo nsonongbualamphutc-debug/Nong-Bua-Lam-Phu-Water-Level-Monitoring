@@ -45,16 +45,20 @@ out geom;
     return HIGHLIGHTED_RIVERS.some(h => name.indexOf(h) !== -1);
   }
 
-  // ===== STYLES =====
+  // ===== STYLES (v4: เด่นทุก zoom + ขอบเส้นทำให้ดูคมชัด) =====
   const STYLES = {
-    river_highlight: { color: "#075985", weight: 5, opacity: 0.95 },
-    river: { color: "#0284c7", weight: 3.5, opacity: 0.85 },
-    canal: { color: "#0ea5e9", weight: 2.5, opacity: 0.8 },
-    stream: { color: "#38bdf8", weight: 1.8, opacity: 0.7 },
-    drain: { color: "#7dd3fc", weight: 1.2, opacity: 0.55 },
-    waterbody_highlight: { color: "#075985", weight: 1.5, opacity: 0.9, fillColor: "#7dd3fc", fillOpacity: 0.55 },
-    waterbody: { color: "#0284c7", weight: 1, opacity: 0.85, fillColor: "#bae6fd", fillOpacity: 0.45 },
-    other: { color: "#7dd3fc", weight: 1, opacity: 0.5 },
+    river_highlight: { color: "#0c4a6e", weight: 6, opacity: 1.0 },
+    river_highlight_outline: { color: "#fff", weight: 9, opacity: 0.7 },  // ขอบขาว
+    river: { color: "#0369a1", weight: 4.5, opacity: 0.95 },
+    river_outline: { color: "#fff", weight: 7, opacity: 0.6 },
+    canal: { color: "#0284c7", weight: 3.5, opacity: 0.9 },
+    canal_outline: { color: "#fff", weight: 6, opacity: 0.5 },
+    stream: { color: "#0ea5e9", weight: 2.5, opacity: 0.85 },
+    stream_outline: { color: "#fff", weight: 4.5, opacity: 0.4 },
+    drain: { color: "#38bdf8", weight: 1.8, opacity: 0.7 },
+    waterbody_highlight: { color: "#075985", weight: 2, opacity: 0.95, fillColor: "#7dd3fc", fillOpacity: 0.65 },
+    waterbody: { color: "#0284c7", weight: 1.5, opacity: 0.9, fillColor: "#bae6fd", fillOpacity: 0.55 },
+    other: { color: "#7dd3fc", weight: 1.5, opacity: 0.7 },
   };
 
   const TYPE_LABELS = {
@@ -183,11 +187,15 @@ out geom;
 
   // ===== Render =====
   function renderToMap(map, geojson, options) {
-    const minZoomForStreams = options.minZoomForStreams || 11;
-    const minZoomForLabels = options.minZoomForLabels || 12;
-    const minZoomForSmallLabels = options.minZoomForSmallLabels || 14;
+    // v4: ลด threshold ลง — แสดงทุกเส้น+ทุกชื่อตั้งแต่ zoom 9-10
+    const minZoomForStreams = options.minZoomForStreams || 9;
+    const minZoomForLabels = options.minZoomForLabels || 10;
+    const minZoomForSmallLabels = options.minZoomForSmallLabels || 12;
 
     const groups = {
+      // ขอบขาว (วาดก่อน เพื่อให้อยู่ล่าง)
+      outlines: L.featureGroup(),
+      // เส้นน้ำหลัก
       drains: L.featureGroup(),
       streams: L.featureGroup(),
       waterbodies: L.featureGroup(),
@@ -197,6 +205,25 @@ out geom;
     };
 
     const labelMarkers = [];
+
+    // Helper: สร้าง outline (ขอบขาว) สำหรับเส้น
+    function makeOutline(feature) {
+      const t = feature.properties.type;
+      const highlighted = isHighlighted(feature.properties.name);
+      let outlineStyle;
+      if (t === "river" && highlighted) outlineStyle = STYLES.river_highlight_outline;
+      else if (t === "river") outlineStyle = STYLES.river_outline;
+      else if (t === "canal") outlineStyle = STYLES.canal_outline;
+      else if (t === "stream") outlineStyle = STYLES.stream_outline;
+      else return null;
+
+      // สร้าง layer แยกสำหรับ outline
+      if (feature.geometry.type === "LineString") {
+        const latlngs = feature.geometry.coordinates.map(c => [c[1], c[0]]);
+        return L.polyline(latlngs, outlineStyle);
+      }
+      return null;
+    }
 
     L.geoJSON(geojson, {
       style: function (feature) {
@@ -212,6 +239,10 @@ out geom;
         const name = p.name || "(ไม่มีชื่อ)";
         const highlighted = isHighlighted(p.name);
         const typeLabel = TYPE_LABELS[t] || "เส้นน้ำ";
+
+        // เพิ่ม outline ก่อน (ใต้เส้นจริง)
+        const outline = makeOutline(feature);
+        if (outline) groups.outlines.addLayer(outline);
 
         // Tooltip (hover)
         if (p.name) {
@@ -234,7 +265,7 @@ out geom;
             <div class="wp-type">${typeLabel}${p.name_en ? ' · ' + p.name_en : ''}</div>
             ${highlighted ? '<div class="wp-badge">ลำน้ำหลัก</div>' : ''}
             <div class="wp-actions">
-              <a href="${gmapsUrl}" target="_blank" rel="noopener">📍 เปิดใน Google Maps</a>
+              <a href="${gmapsUrl}" target="_blank" rel="noopener">เปิดใน Google Maps</a>
             </div>
           </div>
         `;
@@ -278,6 +309,8 @@ out geom;
       },
     });
 
+    // เพิ่ม layers ตาม z-order (ล่างก่อน)
+    groups.outlines.addTo(map);
     groups.drains.addTo(map);
     groups.streams.addTo(map);
     groups.waterbodies.addTo(map);
@@ -299,9 +332,9 @@ out geom;
       labelMarkers.forEach(m => {
         const imp = m._importance;
         let shouldShow = false;
-        if (imp >= 5) shouldShow = z >= 9;
-        else if (imp >= 4) shouldShow = z >= 10;
-        else if (imp >= 3) shouldShow = z >= 11;
+        if (imp >= 5) shouldShow = z >= 8;          // ลำน้ำหลัก เห็นเสมอตั้งแต่ระดับจังหวัด
+        else if (imp >= 4) shouldShow = z >= 9;     // แม่น้ำ
+        else if (imp >= 3) shouldShow = z >= 10;    // คลอง/แหล่งน้ำ
         else if (imp >= 2) shouldShow = z >= minZoomForLabels;
         else shouldShow = z >= minZoomForSmallLabels;
 
@@ -323,6 +356,7 @@ out geom;
       remove: function () { Object.values(groups).forEach(g => map.removeLayer(g)); },
     };
   }
+
 
   function getFeatureCenter(feature) {
     const g = feature.geometry;
@@ -576,30 +610,34 @@ out geom;
       display: inline-block;
       font-family: 'Sarabun', sans-serif;
       font-weight: 700;
-      color: #0c4a6e;
-      text-shadow:
-        -1.5px -1.5px 0 rgba(255,255,255,0.95),
-        1.5px -1.5px 0 rgba(255,255,255,0.95),
-        -1.5px 1.5px 0 rgba(255,255,255,0.95),
-        1.5px 1.5px 0 rgba(255,255,255,0.95),
-        0 0 6px rgba(255,255,255,0.95);
-      transform: translate(-50%, -50%);
-      letter-spacing: 0.3px;
-    }
-    .river-label.sm span { font-size: 10px; opacity: 0.85; }
-    .river-label.md span { font-size: 11px; }
-    .river-label.lg span { font-size: 12px; }
-    .river-label.xl span {
-      font-size: 14px;
-      color: #075985;
-      letter-spacing: 0.5px;
-    }
-    .river-label.highlight span {
       color: #075985;
       text-shadow:
         -2px -2px 0 #fff, 2px -2px 0 #fff,
         -2px 2px 0 #fff, 2px 2px 0 #fff,
-        0 0 8px #fff, 0 0 8px #fff;
+        -2px 0 0 #fff, 2px 0 0 #fff,
+        0 -2px 0 #fff, 0 2px 0 #fff,
+        0 0 8px #fff;
+      transform: translate(-50%, -50%);
+      letter-spacing: 0.3px;
+    }
+    .river-label.sm span { font-size: 11px; opacity: 0.95; }
+    .river-label.md span { font-size: 12px; }
+    .river-label.lg span { font-size: 13px; }
+    .river-label.xl span {
+      font-size: 15px;
+      color: #0c4a6e;
+      letter-spacing: 0.5px;
+      padding: 1px 4px;
+    }
+    .river-label.highlight span {
+      color: #0c4a6e;
+      font-weight: 800;
+      text-shadow:
+        -2.5px -2.5px 0 #fff, 2.5px -2.5px 0 #fff,
+        -2.5px 2.5px 0 #fff, 2.5px 2.5px 0 #fff,
+        -2.5px 0 0 #fff, 2.5px 0 0 #fff,
+        0 -2.5px 0 #fff, 0 2.5px 0 #fff,
+        0 0 10px #fff, 0 0 4px #fff;
     }
   `;
   document.head.appendChild(style);
