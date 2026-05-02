@@ -435,6 +435,33 @@
   }
   .rain-prob-badge.high{background:rgba(220,38,38,.95);}
   .rain-prob-badge.medium{background:rgba(245,158,11,.95);}
+
+  /* Water level forecast badge (สเตป 3.5) */
+  .wf-badge{
+    background:#fff;
+    border:2px solid #16a34a;
+    border-radius:8px;
+    padding:4px 7px;
+    font-family:'Sarabun',sans-serif;
+    box-shadow:0 3px 10px rgba(0,0,0,.25);
+    pointer-events:none;
+    min-width:62px;
+    text-align:center;
+  }
+  .wf-badge .wf-period{
+    font-size:8px;color:#64748b;font-weight:600;
+    letter-spacing:.5px;text-transform:uppercase;
+    line-height:1;
+  }
+  .wf-badge .wf-level{
+    font-size:13px;font-weight:700;color:#0f172a;
+    line-height:1.1;margin:1px 0;
+    font-family:'Courier New',monospace;
+  }
+  .wf-badge .wf-delta{
+    font-size:9px;font-weight:700;
+    line-height:1;
+  }
   /* MAP */
   #map{height:520px;width:100%;}
   .map-legend{
@@ -841,6 +868,11 @@
             <span>คาดการณ์ฝน</span>
             <span class="btn-status" id="heatmapStatus">ปิด</span>
           </button>
+          <button class="map-btn" id="btnWaterForecast" onclick="toggleWaterForecast()">
+            <span class="btn-icon">💧</span>
+            <span>คาดการณ์ระดับน้ำ</span>
+            <span class="btn-status" id="wfStatus">ปิด</span>
+          </button>
           <button class="map-btn" id="btnSatellite" onclick="toggleSatellite()">
             <span class="btn-icon">🛰️</span>
             <span>ดาวเทียม</span>
@@ -1006,7 +1038,7 @@
  *  เปลี่ยน API_URL เป็น Google Apps Script Web App URL ของคุณ
  *  ถ้ายังไม่มีจะใช้ข้อมูลตัวอย่าง (DEMO_DATA)
  * ================================================================= */
-const API_URL = "https://script.google.com/macros/s/AKfycbwEdYWWi6a4TSCLTuQ96FdMdnGAErX_CVaa1FZh0r5KaH8jkQQfGwHa6tJ-7plbmid80Q/exec"; // เช่น "https://script.google.com/macros/s/AKfyc.../exec"
+const API_URL = ""; // เช่น "https://script.google.com/macros/s/AKfyc.../exec"
 
 /* ====== DEMO DATA (จะถูกใช้เมื่อยังไม่ได้ตั้งค่า API_URL) ====== */
 const DEMO_STATIONS = [
@@ -1772,6 +1804,119 @@ function clearHeatmap(){
   if(heatLayer){ mapInstance.removeLayer(heatLayer); heatLayer = null; }
   if(rainBadgeLayer){ mapInstance.removeLayer(rainBadgeLayer); rainBadgeLayer = null; }
   if(riskBadgeLayer){ mapInstance.removeLayer(riskBadgeLayer); riskBadgeLayer = null; }
+}
+
+/* ===================================================================
+ *  สเตป 3.5: คาดการณ์ระดับน้ำ (Water Level Forecast)
+ *  คำนวณระดับน้ำคาดการณ์ในอนาคต จาก:
+ *  - ระดับน้ำปัจจุบัน
+ *  - ฝนคาดการณ์ในพื้นที่ (Open-Meteo)
+ *  - ลักษณะลำน้ำ (ขนาด/ความจุ)
+ *
+ *  สูตร (อย่างง่าย):
+ *  newLevel = currentLevel + (rainForecast / 100) * factor
+ *  factor: 0.3 สำหรับลำน้ำใหญ่, 0.5 สำหรับลำน้ำเล็ก
+ * =================================================================== */
+let waterForecastOn = false;
+let wfBadgeLayer = null;
+let wfDeltaLayer = null;
+
+async function toggleWaterForecast(){
+  waterForecastOn = !waterForecastOn;
+  const btn = document.getElementById("btnWaterForecast");
+  const status = document.getElementById("wfStatus");
+
+  if(waterForecastOn){
+    btn.classList.add("active");
+    status.textContent = "เปิด";
+    if(Object.keys(stationForecasts).length === 0){
+      status.textContent = "กำลังโหลด...";
+      await loadStationForecasts();
+      status.textContent = "เปิด";
+    }
+    renderWaterForecast();
+  } else {
+    btn.classList.remove("active");
+    status.textContent = "ปิด";
+    clearWaterForecast();
+  }
+}
+
+// คำนวณระดับน้ำคาดการณ์ตาม period (วัน)
+function predictedLevel(station, days){
+  const f = stationForecasts[station.id];
+  if(!f) return station.current;
+  const rainSum = f.rain.slice(0, days).reduce((a,v) => a + (v||0), 0);
+  // ปรับ factor ตามขนาดลำน้ำ (พะเนียง = ใหญ่ → 0.3, โมง = เล็ก → 0.5)
+  const factor = station.river === "ลำน้ำพะเนียง" ? 0.025 : 0.04;
+  const delta = rainSum * factor;
+  return station.current + delta;
+}
+
+function levelStatus(level, station){
+  if(level >= station.bank) return { cls: "crit", label: "วิกฤติ", color: "#dc2626" };
+  if(level >= station.warn) return { cls: "warn", label: "เฝ้าระวัง", color: "#f59e0b" };
+  return { cls: "normal", label: "ปกติ", color: "#16a34a" };
+}
+
+function renderWaterForecast(){
+  if(!cachedStations || !mapInstance) return;
+  clearWaterForecast();
+
+  const days = heatmapPeriod || 3;  // ใช้ period เดียวกับ heatmap
+
+  wfBadgeLayer = L.layerGroup();
+  wfDeltaLayer = L.layerGroup();
+
+  cachedStations.forEach(s => {
+    const predicted = predictedLevel(s, days);
+    const delta = predicted - s.current;
+    const currentSt = levelStatus(s.current, s);
+    const futureSt = levelStatus(predicted, s);
+
+    // Badge แสดงระดับคาดการณ์ + delta
+    const arrow = delta > 0.05 ? "▲" : (delta < -0.05 ? "▼" : "●");
+    const arrowColor = delta > 0.5 ? "#dc2626" : (delta > 0.05 ? "#f59e0b" : (delta < -0.05 ? "#0284c7" : "#64748b"));
+
+    // ป้ายลอยข้างหมุด — แสดงระดับคาดการณ์
+    const html = `
+      <div class="wf-badge" style="border-color:${futureSt.color};">
+        <div class="wf-period">+${days}d</div>
+        <div class="wf-level">${predicted.toFixed(2)}</div>
+        <div class="wf-delta" style="color:${arrowColor};">${arrow} ${delta>=0?"+":""}${delta.toFixed(2)}m</div>
+      </div>
+    `;
+    L.marker([s.lat, s.lon], {
+      icon: L.divIcon({
+        className: "",
+        html: html,
+        iconSize: null,
+        iconAnchor: [-22, 14]
+      }),
+      interactive: false,
+      zIndexOffset: 700
+    }).addTo(wfBadgeLayer);
+
+    // ถ้าเปลี่ยนสถานะ (เช่น ปกติ → เฝ้าระวัง) แสดง warning ring
+    if(futureSt.cls !== currentSt.cls && futureSt.cls !== "normal"){
+      L.circleMarker([s.lat, s.lon], {
+        radius: 18,
+        color: futureSt.color,
+        weight: 2.5,
+        fillColor: futureSt.color,
+        fillOpacity: 0.15,
+        dashArray: "4,3"
+      }).addTo(wfDeltaLayer);
+    }
+  });
+
+  wfDeltaLayer.addTo(mapInstance);
+  wfBadgeLayer.addTo(mapInstance);
+}
+
+function clearWaterForecast(){
+  if(wfBadgeLayer){ mapInstance.removeLayer(wfBadgeLayer); wfBadgeLayer = null; }
+  if(wfDeltaLayer){ mapInstance.removeLayer(wfDeltaLayer); wfDeltaLayer = null; }
 }
 
 /* ===================================================================
