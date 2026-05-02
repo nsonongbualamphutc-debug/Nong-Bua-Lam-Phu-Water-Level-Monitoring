@@ -68,9 +68,12 @@ out geom;
     const onProgress = options.onProgress || (() => {});
 
     let geojson = loadFromCache();
+    let source = "cache";
     if (geojson) {
-      onProgress("ใช้ข้อมูลเส้นทางน้ำจาก cache");
-      return renderToMap(map, geojson, options);
+      onProgress("ใช้ข้อมูลเส้นทางน้ำจาก cache (" + geojson.features.length + " เส้น)");
+      const result = renderToMap(map, geojson, options);
+      result.source = "cache";
+      return result;
     }
 
     onProgress("กำลังโหลดเส้นทางน้ำจาก OpenStreetMap...");
@@ -78,12 +81,17 @@ out geom;
       geojson = await fetchFromOverpass(onProgress);
       saveToCache(geojson);
       onProgress(`โหลดเส้นทางน้ำสำเร็จ (${geojson.features.length} เส้น)`);
-      return renderToMap(map, geojson, options);
+      const result = renderToMap(map, geojson, options);
+      result.source = "overpass";
+      return result;
     } catch (err) {
       console.warn("ไม่สามารถโหลดจาก Overpass ได้:", err);
-      onProgress("ใช้ข้อมูลเส้นทางน้ำสำรอง");
+      onProgress("ใช้ข้อมูลเส้นทางน้ำสำรอง (Overpass API ไม่ตอบสนอง)");
       geojson = getFallbackGeoJSON();
-      return renderToMap(map, geojson, options);
+      const result = renderToMap(map, geojson, options);
+      result.source = "fallback";
+      result.error = err.message;
+      return result;
     }
   };
 
@@ -333,47 +341,157 @@ out geom;
   }
 
   function getFallbackGeoJSON() {
+    // เส้นทางน้ำหลัก + สาขา + อ่างเก็บน้ำของจังหวัดหนองบัวลำภู
+    // (ใช้เมื่อ Overpass API ใช้ไม่ได้)
     return {
       type: "FeatureCollection",
       features: [
+        // ===== ลำน้ำพะเนียง (สายหลักทอดเหนือ-ใต้) =====
         {
           type: "Feature",
           geometry: {
             type: "LineString",
             coordinates: [
-              [102.140, 17.420], [102.155, 17.395], [102.168, 17.370],
-              [102.180, 17.345], [102.195, 17.320], [102.210, 17.295],
-              [102.225, 17.270], [102.240, 17.240], [102.255, 17.215],
-              [102.270, 17.185], [102.285, 17.160], [102.298, 17.135],
-              [102.310, 17.110], [102.320, 17.085], [102.330, 17.060],
-              [102.340, 17.035],
+              [101.99304, 17.42065], [101.998, 17.405], [102.015, 17.385],
+              [102.035, 17.365], [102.055, 17.355], [102.071, 17.343],
+              [102.085, 17.330], [102.095, 17.318], [102.107, 17.310],
+              [102.130, 17.290], [102.155, 17.285], [102.180, 17.282],
+              [102.205, 17.270], [102.227, 17.267], [102.255, 17.245],
+              [102.280, 17.230], [102.310, 17.220], [102.340, 17.215],
+              [102.370, 17.220], [102.400, 17.218], [102.428, 17.207],
+              [102.450, 17.198], [102.470, 17.180], [102.485, 17.155],
+              [102.495, 17.130], [102.500, 17.105], [102.498, 17.080],
+              [102.490, 17.055], [102.475, 17.030],
             ],
           },
           properties: { type: "river", name: "ลำน้ำพะเนียง", name_en: "Phaniang River" },
         },
+        // ===== ลำน้ำโมง (อ.สุวรรณคูหา) =====
         {
           type: "Feature",
           geometry: {
             type: "LineString",
             coordinates: [
-              [102.040, 17.580], [102.060, 17.560], [102.080, 17.535],
-              [102.100, 17.510], [102.120, 17.485], [102.140, 17.460],
-              [102.160, 17.435], [102.180, 17.410],
+              [102.020, 17.620], [102.040, 17.595], [102.060, 17.575],
+              [102.080, 17.555], [102.100, 17.535], [102.115, 17.515],
+              [102.130, 17.495], [102.150, 17.480], [102.170, 17.465],
+              [102.195, 17.450], [102.215, 17.440], [102.235, 17.435],
+              [102.255, 17.425], [102.280, 17.415], [102.305, 17.408],
             ],
           },
           properties: { type: "river", name: "ลำน้ำโมง", name_en: "Mong River" },
         },
+        // ===== ลำห้วยทราย (สาขาพะเนียง) =====
+        {
+          type: "Feature",
+          geometry: {
+            type: "LineString",
+            coordinates: [
+              [102.180, 17.140], [102.195, 17.165], [102.215, 17.190],
+              [102.245, 17.215], [102.275, 17.235], [102.310, 17.245],
+            ],
+          },
+          properties: { type: "stream", name: "ลำห้วยทราย", name_en: "Huai Sai" },
+        },
+        // ===== ลำห้วยลุง =====
+        {
+          type: "Feature",
+          geometry: {
+            type: "LineString",
+            coordinates: [
+              [102.080, 17.180], [102.110, 17.200], [102.140, 17.220],
+              [102.175, 17.240], [102.210, 17.255],
+            ],
+          },
+          properties: { type: "stream", name: "ลำห้วยลุง", name_en: "Huai Lung" },
+        },
+        // ===== ลำห้วยทราย-น้อย =====
+        {
+          type: "Feature",
+          geometry: {
+            type: "LineString",
+            coordinates: [
+              [102.350, 17.100], [102.375, 17.130], [102.400, 17.160],
+              [102.425, 17.185], [102.445, 17.200],
+            ],
+          },
+          properties: { type: "stream", name: "ลำห้วยทรายน้อย", name_en: "Huai Sai Noi" },
+        },
+        // ===== ลำห้วยกุดดู่ =====
+        {
+          type: "Feature",
+          geometry: {
+            type: "LineString",
+            coordinates: [
+              [102.560, 17.050], [102.535, 17.080], [102.510, 17.110],
+              [102.495, 17.130],
+            ],
+          },
+          properties: { type: "stream", name: "ลำห้วยกุดดู่", name_en: "Huai Kut Du" },
+        },
+        // ===== ลำห้วยน้ำเพ็ง =====
+        {
+          type: "Feature",
+          geometry: {
+            type: "LineString",
+            coordinates: [
+              [102.230, 17.380], [102.245, 17.355], [102.255, 17.330],
+              [102.260, 17.305], [102.255, 17.280],
+            ],
+          },
+          properties: { type: "stream", name: "ลำห้วยน้ำเพ็ง", name_en: "Huai Nam Pheng" },
+        },
+        // ===== หนองบัว (อ่างกลางเมือง) =====
         {
           type: "Feature",
           geometry: {
             type: "Polygon",
             coordinates: [[
-              [102.428, 17.205], [102.438, 17.205], [102.442, 17.200],
-              [102.440, 17.195], [102.432, 17.193], [102.425, 17.198],
-              [102.428, 17.205],
+              [102.428, 17.207], [102.438, 17.207], [102.445, 17.203],
+              [102.448, 17.198], [102.444, 17.193], [102.435, 17.190],
+              [102.425, 17.193], [102.422, 17.198], [102.425, 17.203],
+              [102.428, 17.207],
             ]],
           },
           properties: { type: "waterbody", name: "หนองบัว", name_en: "Nong Bua" },
+        },
+        // ===== อ่างเก็บน้ำห้วยน้ำบอง =====
+        {
+          type: "Feature",
+          geometry: {
+            type: "Polygon",
+            coordinates: [[
+              [102.155, 17.380], [102.175, 17.385], [102.185, 17.378],
+              [102.183, 17.368], [102.170, 17.365], [102.155, 17.370],
+              [102.150, 17.378], [102.155, 17.380],
+            ]],
+          },
+          properties: { type: "waterbody", name: "อ่างเก็บน้ำห้วยน้ำบอง", name_en: "Huai Nam Bong Reservoir" },
+        },
+        // ===== อ่างเก็บน้ำห้วยทราย =====
+        {
+          type: "Feature",
+          geometry: {
+            type: "Polygon",
+            coordinates: [[
+              [102.300, 17.260], [102.315, 17.265], [102.322, 17.258],
+              [102.318, 17.250], [102.305, 17.248], [102.295, 17.252],
+              [102.298, 17.260], [102.300, 17.260],
+            ]],
+          },
+          properties: { type: "waterbody", name: "อ่างเก็บน้ำห้วยทราย", name_en: "Huai Sai Reservoir" },
+        },
+        // ===== ลำห้วยเสือเต้น =====
+        {
+          type: "Feature",
+          geometry: {
+            type: "LineString",
+            coordinates: [
+              [102.050, 17.450], [102.075, 17.440], [102.100, 17.425],
+              [102.130, 17.415], [102.155, 17.400],
+            ],
+          },
+          properties: { type: "stream", name: "ลำห้วยเสือเต้น", name_en: "Huai Suea Ten" },
         },
       ],
     };
