@@ -9,6 +9,7 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <script src="waterways-loader.js"></script>
+<script src="icons.js"></script>
 <style>
   :root{
     --brand:#0c4a6e; --brand-2:#0284c7; --accent:#0ea5e9;
@@ -109,6 +110,28 @@
     margin-left:auto;font-size:10px;font-weight:500;
     color:var(--muted);text-transform:none;letter-spacing:0;
   }
+  .section-title .ico{
+    color:var(--brand-2);
+    display:inline-flex;align-items:center;
+  }
+
+  /* Icon container styles */
+  .ic-box{
+    width:36px;height:36px;border-radius:10px;
+    display:inline-flex;align-items:center;justify-content:center;
+    flex-shrink:0;
+  }
+  .ic-box.blue{background:linear-gradient(135deg,#dbeafe,#bfdbfe);color:#1e40af;}
+  .ic-box.green{background:linear-gradient(135deg,#dcfce7,#bbf7d0);color:#166534;}
+  .ic-box.amber{background:linear-gradient(135deg,#fef3c7,#fde68a);color:#92400e;}
+  .ic-box.red{background:linear-gradient(135deg,#fee2e2,#fecaca);color:#991b1b;}
+  .ic-box.purple{background:linear-gradient(135deg,#ede9fe,#ddd6fe);color:#5b21b6;}
+  .ic-box.cyan{background:linear-gradient(135deg,#cffafe,#a5f3fc);color:#155e75;}
+  .ic-box.gradient-blue{background:linear-gradient(135deg,#0284c7,#0ea5e9);color:#fff;box-shadow:0 4px 12px rgba(2,132,199,.3);}
+  .ic-box.gradient-green{background:linear-gradient(135deg,#16a34a,#22c55e);color:#fff;box-shadow:0 4px 12px rgba(22,163,74,.3);}
+  .ic-box.gradient-red{background:linear-gradient(135deg,#dc2626,#ef4444);color:#fff;box-shadow:0 4px 12px rgba(220,38,38,.3);}
+
+  .ic-box svg{display:block;}
 
   /* Card */
   .card{
@@ -364,7 +387,7 @@
   <!-- ============ ROW 1: WEATHER ============ -->
   <div class="section">
     <div class="section-title">
-      ☁️ ฝนฟ้าอากาศ
+      <span class="ico" id="ico-weather"></span>ฝนฟ้าอากาศ
       <span class="badge" id="weatherUpdate">กำลังโหลด...</span>
     </div>
     <div class="grid-3">
@@ -384,10 +407,10 @@
             </div>
           </div>
           <div class="weather-stats">
-            <div class="ws-row"><span class="ws-icon">💨</span><span class="ws-label">ลม</span><span class="ws-value" id="wxWind">--</span></div>
-            <div class="ws-row"><span class="ws-icon">💧</span><span class="ws-label">ความน่าจะเป็นฝน</span><span class="ws-value" id="wxRainProb">--</span></div>
-            <div class="ws-row"><span class="ws-icon">🌧️</span><span class="ws-label">ฝนคาดการณ์</span><span class="ws-value" id="wxRainAmt">--</span></div>
-            <div class="ws-row"><span class="ws-icon">🧭</span><span class="ws-label">ทิศลม</span><span class="ws-value" id="wxWindDir">--</span></div>
+            <div class="ws-row"><span class="ws-icon"></span><span class="ws-label">ลม</span><span class="ws-value" id="wxWind">--</span></div>
+            <div class="ws-row"><span class="ws-icon"></span><span class="ws-label">ความน่าจะเป็นฝน</span><span class="ws-value" id="wxRainProb">--</span></div>
+            <div class="ws-row"><span class="ws-icon"></span><span class="ws-label">ฝนคาดการณ์</span><span class="ws-value" id="wxRainAmt">--</span></div>
+            <div class="ws-row"><span class="ws-icon"></span><span class="ws-label">ทิศลม</span><span class="ws-value" id="wxWindDir">--</span></div>
           </div>
         </div>
       </div>
@@ -395,7 +418,7 @@
       <!-- Rain Map per Amphoe -->
       <div class="card">
         <div class="card-head">
-          <h3>🗺️ ปริมาณฝน 24 ชม. ราย 6 อำเภอ</h3>
+          <h3>ปริมาณฝน 24 ชม. ราย 6 อำเภอ</h3>
           <span class="meta" id="rainMaxLabel">-</span>
         </div>
         <div class="card-body">
@@ -407,19 +430,19 @@
       <!-- TMD Weather Station -->
       <div class="card">
         <div class="card-head">
-          <h3>📡 สถานีอุตุฯ หนองบัวลำภู</h3>
+          <h3>สถานีอุตุฯ หนองบัวลำภู</h3>
           <span class="meta" id="tmdTime">-</span>
         </div>
         <div class="card-body">
           <div class="tmd-grid">
-            <div class="tmd-cell"><span class="ic">🌡️</span><div><div class="lbl">อุณหภูมิ</div><div class="val" id="tmdTemp">--°C</div></div></div>
-            <div class="tmd-cell"><span class="ic">☁️</span><div><div class="lbl">เมฆ</div><div class="val" id="tmdCloud">-/10</div></div></div>
-            <div class="tmd-cell"><span class="ic">💨</span><div><div class="lbl">ความกดอากาศ</div><div class="val" id="tmdPressure">-- hPa</div></div></div>
-            <div class="tmd-cell"><span class="ic">💧</span><div><div class="lbl">ความชื้น</div><div class="val" id="tmdHumidity">--%</div></div></div>
-            <div class="tmd-cell"><span class="ic">🌬️</span><div><div class="lbl">ลม</div><div class="val" id="tmdWind">ลมสงบ</div></div></div>
-            <div class="tmd-cell"><span class="ic">👁️</span><div><div class="lbl">ทัศนวิสัย</div><div class="val" id="tmdVis">-- km</div></div></div>
-            <div class="tmd-cell"><span class="ic">🌧️</span><div><div class="lbl">ฝนเมื่อวาน</div><div class="val" id="tmdRainYest">-- mm</div></div></div>
-            <div class="tmd-cell"><span class="ic">📊</span><div><div class="lbl">ฝนรวมทั้งปี</div><div class="val" id="tmdRainYear">-- mm</div></div></div>
+            <div class="tmd-cell"><span class="ic"></span><div><div class="lbl">อุณหภูมิ</div><div class="val" id="tmdTemp">--°C</div></div></div>
+            <div class="tmd-cell"><span class="ic"></span><div><div class="lbl">เมฆ</div><div class="val" id="tmdCloud">-/10</div></div></div>
+            <div class="tmd-cell"><span class="ic"></span><div><div class="lbl">ความกดอากาศ</div><div class="val" id="tmdPressure">-- hPa</div></div></div>
+            <div class="tmd-cell"><span class="ic"></span><div><div class="lbl">ความชื้น</div><div class="val" id="tmdHumidity">--%</div></div></div>
+            <div class="tmd-cell"><span class="ic"></span><div><div class="lbl">ลม</div><div class="val" id="tmdWind">ลมสงบ</div></div></div>
+            <div class="tmd-cell"><span class="ic"></span><div><div class="lbl">ทัศนวิสัย</div><div class="val" id="tmdVis">-- km</div></div></div>
+            <div class="tmd-cell"><span class="ic"></span><div><div class="lbl">ฝนเมื่อวาน</div><div class="val" id="tmdRainYest">-- mm</div></div></div>
+            <div class="tmd-cell"><span class="ic"></span><div><div class="lbl">ฝนรวมทั้งปี</div><div class="val" id="tmdRainYear">-- mm</div></div></div>
           </div>
         </div>
       </div>
@@ -437,7 +460,7 @@
       <!-- Ubonrat Dam -->
       <div class="card">
         <div class="card-head">
-          <h3>🏞️ เขื่อนอุบลรัตน์</h3>
+          <h3>เขื่อนอุบลรัตน์</h3>
           <span class="meta">อ.อุบลรัตน์ จ.ขอนแก่น</span>
         </div>
         <div class="card-body">
@@ -467,7 +490,7 @@
       <!-- Reservoirs in Province -->
       <div class="card">
         <div class="card-head">
-          <h3>🌊 อ่างเก็บน้ำจังหวัดหนองบัวลำภู</h3>
+          <h3>อ่างเก็บน้ำจังหวัดหนองบัวลำภู</h3>
           <span class="meta" id="resCount">- อ่าง</span>
         </div>
         <div class="card-body">
@@ -483,7 +506,7 @@
   <!-- ============ ROW 3: STATIONS (น้ำท่า) ============ -->
   <div class="section">
     <div class="section-title">
-      🌊 ระดับน้ำท่า
+      <span class="ico" id="ico-river"></span>ระดับน้ำท่า
       <span class="badge" id="stationCount">12 สถานี</span>
     </div>
     <div class="card">
@@ -509,7 +532,7 @@
       <!-- Air Quality -->
       <div class="card">
         <div class="card-head">
-          <h3>🌿 PM2.5 / AQI</h3>
+          <h3>PM2.5 / AQI</h3>
           <span class="meta" id="aqiUpdate">-</span>
         </div>
         <div class="card-body">
@@ -532,12 +555,12 @@
       <!-- Disaster -->
       <div class="card">
         <div class="card-head">
-          <h3>🚨 สาธารณภัยวันนี้</h3>
+          <h3>สาธารณภัยวันนี้</h3>
           <span class="meta" id="disasterDate">-</span>
         </div>
         <div class="card-body">
           <div class="disaster-card" id="disasterCard">
-            <div class="disaster-icon" id="disasterIcon">✅</div>
+            <div class="disaster-icon" id="disasterIcon"></div>
             <div class="disaster-status" id="disasterStatus">ไม่เกิดสาธารณภัยในพื้นที่</div>
             <div class="disaster-text" id="disasterText">ทั้ง 6 อำเภอของจังหวัดหนองบัวลำภู</div>
           </div>
@@ -553,7 +576,7 @@
 
   <!-- ============ SUMMARY ============ -->
   <div class="summary-bar" id="summaryBar">
-    <span class="ic">📋</span>
+    <span class="ic"></span>
     <div class="text" id="summaryText">กำลังประมวลผลสรุปสถานการณ์...</div>
   </div>
 
@@ -624,6 +647,75 @@ function setText(id, val){
 function setHTML(id, html){
   const el = document.getElementById(id);
   if(el) el.innerHTML = html;
+}
+
+/* ============ Initialize Icons ============ */
+function initIcons(){
+  // Section title icons
+  setHTML("ico-weather", icon("cloud-rain", 18, "#0284c7"));
+  setHTML("ico-water", icon("droplets", 18, "#0284c7"));
+  setHTML("ico-river", icon("activity", 18, "#0284c7"));
+  setHTML("ico-air", icon("leaf", 18, "#0284c7"));
+
+  // Card title icons (prepend SVG to h3)
+  document.querySelectorAll(".card-head h3").forEach(h => {
+    const text = h.textContent.trim();
+    let iconName = null, color = "#0284c7";
+    if(text.includes("สภาพอากาศ")) iconName = "cloud-sun";
+    else if(text.includes("ปริมาณฝน")) iconName = "map";
+    else if(text.includes("สถานีอุตุ")) iconName = "navigation";
+    else if(text.includes("เขื่อน")) iconName = "dam";
+    else if(text.includes("อ่างเก็บน้ำ")) iconName = "warehouse";
+    else if(text.includes("สถานีตรวจวัด")) iconName = "activity";
+    else if(text.includes("PM2.5")) iconName = "leaf";
+    else if(text.includes("สาธารณภัย")) iconName = "siren";
+    if(iconName){
+      h.innerHTML = `<span style="display:inline-flex;align-items:center;gap:7px;">${icon(iconName, 16, color)}<span>${text}</span></span>`;
+    }
+  });
+
+  // TMD cell icons
+  const tmdIcons = {
+    "tmdTemp": "thermometer",
+    "tmdCloud": "cloud",
+    "tmdPressure": "gauge",
+    "tmdHumidity": "droplets",
+    "tmdWind": "wind",
+    "tmdVis": "eye",
+    "tmdRainYest": "cloud-rain",
+    "tmdRainYear": "chart-bar",
+  };
+  Object.entries(tmdIcons).forEach(([id, name]) => {
+    const el = document.getElementById(id);
+    if(!el) return;
+    const cell = el.closest(".tmd-cell");
+    if(!cell) return;
+    const ic = cell.querySelector(".ic");
+    if(ic) ic.innerHTML = icon(name, 18, "#0284c7");
+  });
+
+  // Weather card stats icons
+  const wxStats = {
+    "wxWind": "wind",
+    "wxRainProb": "droplets",
+    "wxRainAmt": "cloud-rain",
+    "wxWindDir": "compass",
+  };
+  Object.entries(wxStats).forEach(([id, name]) => {
+    const el = document.getElementById(id);
+    if(!el) return;
+    const row = el.closest(".ws-row");
+    if(!row) return;
+    const iconEl = row.querySelector(".ws-icon");
+    if(iconEl) iconEl.innerHTML = icon(name, 14, "#64748b");
+  });
+
+  // Replace LED dot status icon and disaster icon
+  const dStat = document.getElementById("disasterIcon");
+  if(dStat) dStat.innerHTML = icon("shield-check", 32, "#16a34a");
+
+  // Summary bar icon
+  setHTML("ico-summary", icon("info", 18, "#fde68a"));
 }
 
 function classifyRain(mm){
@@ -702,23 +794,30 @@ function renderWeather(data){
   const d = data.daily;
   const c = data.current;
   if(!d || !c) return;
-  const wInfo = weatherCodeIcon(d.weather_code[0]);
-  setText("wxIcon", wInfo.icon);
+  const code = d.weather_code[0];
+  const iconName = window.weatherIcon ? weatherIcon(code) : "cloud";
+  // Big colored weather icon
+  const iconColors = {
+    "sun":"#f59e0b", "cloud-sun":"#0284c7", "cloud":"#64748b",
+    "fog":"#94a3b8", "cloud-rain":"#0284c7", "zap":"#f59e0b"
+  };
+  setHTML("wxIcon", `<div class="ic-box" style="width:56px;height:56px;border-radius:14px;background:linear-gradient(135deg,#dbeafe,#bfdbfe);">${icon(iconName, 32, iconColors[iconName] || "#0284c7")}</div>`);
+  const codeText = {0:"ท้องฟ้าโปร่ง",1:"แดดส่วนใหญ่",2:"เมฆบางส่วน",3:"เมฆมาก"}[code] || (code>=95?"พายุฝนฟ้าคะนอง":(code>=51?"ฝนตก":"-"));
   setText("wxHigh", Math.round(d.temperature_2m_max[0]));
   setText("wxLow", Math.round(d.temperature_2m_min[0]));
-  setText("wxDesc", wInfo.text);
+  setText("wxDesc", codeText);
   setText("wxWind", Math.round(d.wind_speed_10m_max[0]) + " km/h");
   setText("wxRainProb", (d.precipitation_probability_max[0] || 0) + "%");
   setText("wxRainAmt", (d.precipitation_sum[0] || 0).toFixed(1) + " มม.");
   setText("wxWindDir", windDir(d.wind_direction_10m_dominant[0]));
   setText("weatherUpdate", "อัปเดต " + new Date().toLocaleTimeString("th-TH",{hour:"2-digit",minute:"2-digit"}));
 
-  // Update TMD-style station data using current readings (mock if no separate station)
+  // TMD station
   setText("tmdTemp", c.temperature_2m.toFixed(1) + "°C");
   setText("tmdHumidity", Math.round(c.relative_humidity_2m) + "%");
   setText("tmdPressure", c.pressure_msl.toFixed(0) + " hPa");
   setText("tmdWind", c.wind_speed_10m < 5 ? "ลมสงบ" : Math.round(c.wind_speed_10m) + " km/h");
-  setText("tmdCloud", "-/10"); // Open-Meteo current ไม่มี cloud_cover ใน basic
+  setText("tmdCloud", "-/10");
   setText("tmdVis", "9 km");
   setText("tmdRainYest", "-- mm");
   setText("tmdRainYear", "-- mm");
@@ -977,14 +1076,15 @@ function renderAQI(){
 
 /* ============ Disaster ============ */
 function renderDisaster(){
-  // ใน demo: ไม่มีภัย — สามารถดึงจาก API ภายหลัง
   const hasDisaster = false;
   setText("disasterDate", new Date().toLocaleDateString("th-TH",{day:"numeric",month:"short"}));
   if(hasDisaster){
     document.getElementById("disasterCard").classList.add("alert");
-    setText("disasterIcon", "⚠️");
+    setHTML("disasterIcon", icon("alert-triangle", 32, "#dc2626"));
     setText("disasterStatus", "พบเหตุภัยพิบัติในพื้นที่");
     setText("disasterText", "กรุณาตรวจสอบรายละเอียด");
+  } else {
+    setHTML("disasterIcon", icon("shield-check", 32, "#16a34a"));
   }
 }
 
@@ -1027,6 +1127,7 @@ function renderSummary(stations, counts, weather){
 
 /* ============ Main ============ */
 async function main(){
+  initIcons();
   await loadWeather();
   await loadRainByAmphoe();
   const stations = await loadStations();
