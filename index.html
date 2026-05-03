@@ -81,7 +81,7 @@
   body, .summary-card, .card, .panel, .map-btn, nav, nav a{
     transition:background-color .25s ease, border-color .25s ease, color .25s ease;
   }
-  /* =================== LAYER PANEL (สเตป B3) =================== */
+  /* =================== LAYER PANEL (สเตป B3 v2) =================== */
   .layer-panel{
     position:absolute;top:14px;left:14px;
     z-index:600;
@@ -108,6 +108,13 @@
     color:#fff;border-color:transparent;
     box-shadow:0 4px 14px rgba(2,132,199,.4);
   }
+  .lp-count{
+    background:#dc2626;color:#fff;
+    font-size:10px;font-weight:700;
+    padding:1px 6px;border-radius:8px;
+    margin-left:2px;min-width:18px;text-align:center;
+  }
+  .lp-toggle.active .lp-count{background:rgba(255,255,255,.3);}
   [data-theme="dark"] .lp-toggle{
     background:rgba(30,41,59,.95);border-color:#334155;color:#bae6fd;
   }
@@ -118,10 +125,10 @@
     background:rgba(255,255,255,.97);
     border:1px solid #e2e8f0;
     border-radius:10px;
-    padding:10px 4px;
+    padding:8px;
     box-shadow:0 8px 24px rgba(0,0,0,.15);
     backdrop-filter:blur(10px);
-    width:200px;
+    width:240px;
     display:none;
     animation:lpSlide .2s ease-out;
   }
@@ -131,37 +138,86 @@
     background:rgba(30,41,59,.97);border-color:#334155;
   }
 
-  .lp-section{padding:4px 8px;}
-  .lp-section + .lp-section{
-    border-top:1px solid #e2e8f0;margin-top:6px;padding-top:8px;
-  }
-  [data-theme="dark"] .lp-section + .lp-section{border-top-color:#334155;}
-  .lp-section-title{
-    font-size:10px;color:#64748b;font-weight:700;
-    letter-spacing:.5px;text-transform:uppercase;
-    margin-bottom:4px;padding:0 4px;
-  }
-  .lp-item{
-    display:flex;align-items:center;gap:8px;
-    padding:6px 8px;border-radius:6px;
-    cursor:pointer;font-size:12px;color:#0f172a;
+  .lp-item.lp-main{
+    display:flex;align-items:center;gap:10px;
+    padding:10px;border-radius:8px;
+    cursor:pointer;color:#0f172a;
     transition:background .12s;
+    border:1.5px solid transparent;
   }
-  [data-theme="dark"] .lp-item{color:#e2e8f0;}
-  .lp-item:hover{background:#f0f9ff;}
-  [data-theme="dark"] .lp-item:hover{background:rgba(56,189,248,.1);}
-  .lp-item input[type="checkbox"]{
-    width:14px;height:14px;cursor:pointer;
-    accent-color:#0284c7;
+  [data-theme="dark"] .lp-item.lp-main{color:#e2e8f0;}
+  .lp-item.lp-main:hover{background:#f0f9ff;border-color:#bae6fd;}
+  [data-theme="dark"] .lp-item.lp-main:hover{background:rgba(56,189,248,.1);border-color:#0284c7;}
+  .lp-item.lp-main input[type="checkbox"]{
+    width:16px;height:16px;cursor:pointer;
+    accent-color:#0284c7;flex-shrink:0;
   }
+  .lp-text{flex:1;min-width:0;}
+  .lp-name{font-size:13px;font-weight:600;line-height:1.3;}
+  .lp-desc{font-size:10.5px;color:#64748b;margin-top:1px;}
+  [data-theme="dark"] .lp-desc{color:#94a3b8;}
   .lp-swatch{
-    width:18px;height:14px;border-radius:3px;
+    width:22px;height:22px;border-radius:5px;
     flex-shrink:0;
     box-shadow:0 1px 3px rgba(0,0,0,.15);
   }
 
+  /* Sub panel (radio for choropleth dimension) */
+  .lp-sub{
+    margin:4px 4px 8px;padding:10px 12px;
+    background:#f8fafc;
+    border-radius:8px;
+    border:1px solid #e2e8f0;
+    animation:lpSlide .2s ease-out;
+  }
+  [data-theme="dark"] .lp-sub{background:#0f172a;border-color:#334155;}
+  .lp-sub-label{
+    font-size:10.5px;color:#64748b;font-weight:600;
+    margin-bottom:6px;
+  }
+  .lp-radio-group{display:flex;flex-direction:column;gap:3px;}
+  .lp-radio{
+    display:flex;align-items:center;gap:7px;
+    padding:5px 7px;border-radius:5px;
+    cursor:pointer;font-size:12px;color:#0f172a;
+    transition:background .12s;
+  }
+  [data-theme="dark"] .lp-radio{color:#e2e8f0;}
+  .lp-radio:hover{background:rgba(2,132,199,.08);}
+  .lp-radio input[type="radio"]{
+    width:13px;height:13px;cursor:pointer;
+    accent-color:#0284c7;
+  }
+
+  /* Choropleth legend (โผล่เมื่อเปิด layer) */
+  .choropleth-legend{
+    position:absolute;bottom:14px;left:14px;
+    background:rgba(255,255,255,.95);
+    border:1px solid #e2e8f0;
+    border-radius:10px;
+    padding:10px 12px;
+    box-shadow:0 4px 14px rgba(0,0,0,.12);
+    z-index:550;
+    font-family:'Sarabun',sans-serif;
+    backdrop-filter:blur(8px);
+    animation:lpSlide .25s ease-out;
+  }
+  [data-theme="dark"] .choropleth-legend{
+    background:rgba(30,41,59,.95);border-color:#334155;
+  }
+  .cl-title{font-size:11px;font-weight:700;color:#0c4a6e;margin-bottom:6px;}
+  [data-theme="dark"] .cl-title{color:#bae6fd;}
+  .cl-bar{
+    width:160px;height:10px;border-radius:5px;
+    margin-bottom:3px;
+  }
+  .cl-labels{
+    display:flex;justify-content:space-between;
+    font-size:10px;color:#64748b;font-weight:600;
+  }
+
   @media(max-width:600px){
-    .lp-body{width:170px;}
+    .lp-body{width:210px;}
   }
 
   /* =================== HEADER TOOLS (สเตป 6) =================== */
@@ -1575,7 +1631,7 @@
       <div class="panel-body" style="position:relative;">
         <div id="map"></div>
 
-        <!-- Layer Panel (สเตป B3) -->
+        <!-- Layer Panel (สเตป B3 v2: 3 ชั้นเฉพาะที่ใช้จริง) -->
         <div class="layer-panel" id="layerPanel">
           <button class="lp-toggle" onclick="toggleLayerPanel()" id="lpToggle" title="ชั้นข้อมูลแผนที่">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1584,44 +1640,56 @@
               <polyline points="2 12 12 17 22 12"/>
             </svg>
             <span class="lp-label">ชั้นข้อมูล</span>
+            <span class="lp-count" id="lpCount" style="display:none;">0</span>
           </button>
           <div class="lp-body" id="lpBody">
-            <div class="lp-section">
-              <div class="lp-section-title">ขอบเขตการปกครอง</div>
-              <label class="lp-item">
-                <input type="checkbox" data-layer="province" onchange="onLayerToggle(this)">
-                <span class="lp-swatch" style="background:transparent;border:2px dashed #0c4a6e;"></span>
-                <span>ขอบเขตจังหวัด</span>
-              </label>
-              <label class="lp-item">
-                <input type="checkbox" data-layer="amphoe" onchange="onLayerToggle(this)">
-                <span class="lp-swatch" style="background:linear-gradient(135deg,#fbbf24,#fb923c,#f87171);"></span>
-                <span>ขอบเขต 6 อำเภอ</span>
-              </label>
+
+            <label class="lp-item lp-main">
+              <input type="checkbox" data-layer="amphoe_choropleth" onchange="onLayerToggle(this)">
+              <span class="lp-swatch" style="background:linear-gradient(135deg,#fbbf24,#fb923c,#f87171);"></span>
+              <div class="lp-text">
+                <div class="lp-name">ขอบเขต 6 อำเภอ</div>
+                <div class="lp-desc">Choropleth · เลือกตัวชี้วัดได้</div>
+              </div>
+            </label>
+
+            <!-- Choropleth dimension selector -->
+            <div class="lp-sub" id="choroplethSub" style="display:none;">
+              <div class="lp-sub-label">แสดงสีตาม:</div>
+              <div class="lp-radio-group">
+                <label class="lp-radio">
+                  <input type="radio" name="choroDim" value="rain" checked onchange="changeChoroplethDim(this.value)">
+                  <span>🌧️ ปริมาณฝน 24 ชม.</span>
+                </label>
+                <label class="lp-radio">
+                  <input type="radio" name="choroDim" value="reservoir" onchange="changeChoroplethDim(this.value)">
+                  <span>🌊 % เก็บน้ำเฉลี่ย</span>
+                </label>
+                <label class="lp-radio">
+                  <input type="radio" name="choroDim" value="risk" onchange="changeChoroplethDim(this.value)">
+                  <span>⚠️ ความเสี่ยงน้ำท่วม</span>
+                </label>
+              </div>
             </div>
-            <div class="lp-section">
-              <div class="lp-section-title">สถานที่สำคัญ</div>
-              <label class="lp-item">
-                <input type="checkbox" data-layer="amphoe_office" onchange="onLayerToggle(this)">
-                <span class="lp-swatch" style="background:#7c3aed;"></span>
-                <span>ที่ว่าการอำเภอ</span>
-              </label>
-              <label class="lp-item">
-                <input type="checkbox" data-layer="hospital" onchange="onLayerToggle(this)">
-                <span class="lp-swatch" style="background:#ef4444;"></span>
-                <span>โรงพยาบาล</span>
-              </label>
-              <label class="lp-item">
-                <input type="checkbox" data-layer="shelter" onchange="onLayerToggle(this)">
-                <span class="lp-swatch" style="background:#f59e0b;"></span>
-                <span>ศูนย์อพยพ</span>
-              </label>
-              <label class="lp-item">
-                <input type="checkbox" data-layer="reservoir" onchange="onLayerToggle(this)">
-                <span class="lp-swatch" style="background:#06b6d4;"></span>
-                <span>อ่างเก็บน้ำ</span>
-              </label>
-            </div>
+
+            <label class="lp-item lp-main">
+              <input type="checkbox" data-layer="reservoir12" onchange="onLayerToggle(this)">
+              <span class="lp-swatch" style="background:#06b6d4;"></span>
+              <div class="lp-text">
+                <div class="lp-name">อ่างเก็บน้ำ 12 แห่ง</div>
+                <div class="lp-desc">% เก็บน้ำ + แสดงสีตามสถานะ</div>
+              </div>
+            </label>
+
+            <label class="lp-item lp-main">
+              <input type="checkbox" data-layer="pump_station" onchange="onLayerToggle(this)">
+              <span class="lp-swatch" style="background:#8b5cf6;"></span>
+              <div class="lp-text">
+                <div class="lp-name">สถานีสูบน้ำ</div>
+                <div class="lp-desc">ดึงจาก OSM อัตโนมัติ</div>
+              </div>
+            </label>
+
           </div>
         </div>
 
@@ -1660,6 +1728,16 @@
             <span style="color:#f59e0b;">กลาง</span>
             <span style="color:#dc2626;">สูง</span>
             <span style="color:#7f1d1d;">วิกฤติ</span>
+          </div>
+        </div>
+
+        <!-- Choropleth legend (โผล่เมื่อเปิด layer) -->
+        <div class="choropleth-legend" id="choroLegend" style="display:none;">
+          <div class="cl-title" id="clTitle">ปริมาณฝน 24 ชม.</div>
+          <div class="cl-bar" id="clBar"></div>
+          <div class="cl-labels" id="clLabels">
+            <span>น้อย</span>
+            <span>มาก</span>
           </div>
         </div>
       </div>
@@ -2245,6 +2323,20 @@ async function loadData(){
 
 /* ====== RENDER ====== */
 function render(stations, rain){
+  // เก็บข้อมูลฝนรายอำเภอไว้ให้ Choropleth (B3 v2)
+  window._lastRainByAmphoe = {};
+  if(rain && rain.length){
+    rain.forEach(r => {
+      const code = r.amphoe === "เมืองหนองบัวลำภู" ? "เมือง" : r.amphoe;
+      window._lastRainByAmphoe[code] = r.rain24;
+    });
+  }
+  // ถ้า choropleth ใช้งานอยู่ ให้ refresh ข้อมูลใหม่
+  if(mapLayersInstance && mapLayersInstance.visible.amphoe_choropleth){
+    const dim = mapLayersInstance.choroplethDim || "rain";
+    const data = buildChoroplethData(dim);
+    mapLayersInstance.setChoroplethDimension(dim, data);
+  }
   // อัปเดต hero header (สเตป 1)
   updateSituation(stations, rain);
 
@@ -2930,7 +3022,7 @@ function clearHeatmap(){
 }
 
 /* ===================================================================
- *  สเตป B3: Layer Panel — Boundary + POI layers
+ *  สเตป B3 v2: Layer Panel — 3 ชั้นเฉพาะที่ใช้จริง
  * =================================================================== */
 let mapLayersInstance = null;
 
@@ -2949,6 +3041,94 @@ function toggleLayerPanel(){
   btn.classList.toggle("active", isOpen);
 }
 
+function updateLayerCount(){
+  const checked = document.querySelectorAll('.lp-item input[type="checkbox"]:checked').length;
+  const counter = document.getElementById("lpCount");
+  if(!counter) return;
+  if(checked > 0){
+    counter.style.display = "inline-block";
+    counter.textContent = checked;
+  } else {
+    counter.style.display = "none";
+  }
+}
+
+// คำนวณข้อมูลที่ใช้ choropleth
+function buildChoroplethData(dim){
+  const data = {};
+  const codes = ["เมือง","นาวัง","นากลาง","ศรีบุญเรือง","สุวรรณคูหา","โนนสัง"];
+
+  if(dim === "rain"){
+    // ดึงจาก rainData ที่ load มา (ฝน 24 ชม. ราย อำเภอ)
+    if(typeof rainData === "object" && rainData){
+      // ปกติ rainData มาจาก loadData() ที่เก็บใน scope หลัก — ไม่มีใน index.html
+      // ใช้ค่าจาก stations หรือ default 0
+    }
+    // ลองดึงจาก global ที่ผ่าน loadData
+    codes.forEach(c => {
+      data[c] = (window._lastRainByAmphoe && window._lastRainByAmphoe[c]) || 0;
+    });
+  } else if(dim === "reservoir"){
+    // คำนวณ % เก็บน้ำเฉลี่ยรายอำเภอ จาก RESERVOIRS_12_DATA
+    if(window.RESERVOIRS_12_DATA){
+      const byAmphoe = {};
+      window.RESERVOIRS_12_DATA.forEach(r => {
+        const code = r.amphoe === "เมืองหนองบัวลำภู" ? "เมือง" : r.amphoe;
+        if(!byAmphoe[code]) byAmphoe[code] = [];
+        byAmphoe[code].push((r.current / r.capacity) * 100);
+      });
+      codes.forEach(c => {
+        const arr = byAmphoe[c];
+        data[c] = arr && arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : null;
+      });
+    }
+  } else if(dim === "risk"){
+    // คำนวณความเสี่ยงรายอำเภอ — ใช้ stations + ฝนคาดการณ์
+    if(typeof cachedStations !== "undefined" && cachedStations){
+      const byAmphoe = {};
+      cachedStations.forEach(s => {
+        const amphoeCode = s.amphoe === "เมือง" ? "เมือง" : s.amphoe;
+        if(!byAmphoe[amphoeCode]) byAmphoe[amphoeCode] = [];
+        // risk จาก calculateRisk ถ้ามี (สเตป 3) ไม่งั้นใช้ ratio ของระดับน้ำ
+        let risk = 0;
+        if(typeof calculateRisk === "function" && stationForecasts && Object.keys(stationForecasts).length){
+          risk = calculateRisk(s, 3) * 100;
+        } else {
+          risk = (s.current / s.bank) * 100;
+        }
+        byAmphoe[amphoeCode].push(risk);
+      });
+      codes.forEach(c => {
+        const arr = byAmphoe[c];
+        data[c] = arr && arr.length ? Math.max(...arr) : null;  // ใช้ max risk ในอำเภอ
+      });
+    }
+  }
+  return data;
+}
+
+function updateChoroplethLegend(dim){
+  const legend = document.getElementById("choroLegend");
+  const title = document.getElementById("clTitle");
+  const bar = document.getElementById("clBar");
+  const labels = document.getElementById("clLabels");
+  if(!legend) return;
+
+  if(dim === "rain"){
+    title.textContent = "ปริมาณฝน 24 ชม. (มม.)";
+    bar.style.background = "linear-gradient(90deg, #f8fafc, #dbeafe, #93c5fd, #3b82f6, #1e40af)";
+    labels.innerHTML = '<span>ไม่มีฝน</span><span>เบา</span><span>ปานกลาง</span><span>หนัก</span><span>หนักมาก</span>';
+  } else if(dim === "reservoir"){
+    title.textContent = "% เก็บน้ำเฉลี่ย";
+    bar.style.background = "linear-gradient(90deg, #fee2e2, #fef3c7, #bfdbfe, #06b6d4)";
+    labels.innerHTML = '<span>< 30%</span><span>30-50%</span><span>50-80%</span><span>≥ 80%</span>';
+  } else if(dim === "risk"){
+    title.textContent = "ความเสี่ยงน้ำท่วม (%)";
+    bar.style.background = "linear-gradient(90deg, #dcfce7, #fef3c7, #fed7aa, #fecaca)";
+    labels.innerHTML = '<span>ต่ำ</span><span>กลาง</span><span>สูง</span><span>วิกฤติ</span>';
+  }
+}
+
 async function onLayerToggle(checkbox){
   const layer = checkbox.dataset.layer;
   const on = checkbox.checked;
@@ -2959,24 +3139,45 @@ async function onLayerToggle(checkbox){
     return;
   }
 
-  // ถ้าเปิด toggle อะไรก็ตาม ให้ปิด layer panel โดยอัตโนมัติเพื่อดูแผนที่ได้เต็มที่
-  // (แต่ไม่ปิดถ้า checkbox อยู่ในกลุ่มเดียวกันหลายๆ ชั้น)
+  // ถ้าเปิด choropleth ให้ inject ข้อมูลก่อน + แสดง sub-panel + legend
+  if(layer === "amphoe_choropleth"){
+    const sub = document.getElementById("choroplethSub");
+    const legend = document.getElementById("choroLegend");
+    if(on){
+      const dim = document.querySelector('input[name="choroDim"]:checked')?.value || "rain";
+      inst.choroplethDim = dim;
+      inst.choroplethData = buildChoroplethData(dim);
+      if(sub) sub.style.display = "block";
+      if(legend) legend.style.display = "block";
+      updateChoroplethLegend(dim);
+    } else {
+      if(sub) sub.style.display = "none";
+      if(legend) legend.style.display = "none";
+    }
+  }
+
   await inst.toggle(layer, on);
+  updateLayerCount();
 
   if(on && typeof showToast === "function"){
     const labels = {
-      province: "ขอบเขตจังหวัด",
-      amphoe: "ขอบเขต 6 อำเภอ",
-      hospital: "โรงพยาบาล",
-      amphoe_office: "ที่ว่าการอำเภอ",
-      shelter: "ศูนย์อพยพ",
-      reservoir: "อ่างเก็บน้ำ",
+      amphoe_choropleth: "ขอบเขต 6 อำเภอ",
+      reservoir12: "อ่างเก็บน้ำ 12 แห่ง",
+      pump_station: "สถานีสูบน้ำ",
     };
     showToast(`✅ เปิดชั้น: ${labels[layer]}`, "success");
   }
 }
 
-// ปิด layer panel เมื่อคลิกที่อื่น
+function changeChoroplethDim(dim){
+  const inst = ensureMapLayers();
+  if(!inst) return;
+  const data = buildChoroplethData(dim);
+  inst.setChoroplethDimension(dim, data);
+  updateChoroplethLegend(dim);
+  showToast && showToast(`🎨 เปลี่ยนเป็น: ${ {rain:"ปริมาณฝน", reservoir:"% เก็บน้ำ", risk:"ความเสี่ยง"}[dim] }`, "success");
+}
+
 document.addEventListener("click", e => {
   if(!e.target.closest(".layer-panel")){
     const body = document.getElementById("lpBody");
