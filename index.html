@@ -15,6 +15,7 @@
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script src="waterways-loader.js"></script>
+<script src="map-layers.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
   :root{
@@ -80,6 +81,89 @@
   body, .summary-card, .card, .panel, .map-btn, nav, nav a{
     transition:background-color .25s ease, border-color .25s ease, color .25s ease;
   }
+  /* =================== LAYER PANEL (สเตป B3) =================== */
+  .layer-panel{
+    position:absolute;top:14px;left:14px;
+    z-index:600;
+    font-family:'Sarabun',sans-serif;
+  }
+  .lp-toggle{
+    background:rgba(255,255,255,.95);
+    border:1px solid #e2e8f0;
+    border-radius:10px;
+    padding:8px 12px;
+    cursor:pointer;
+    display:flex;align-items:center;gap:7px;
+    color:#0c4a6e;font-size:12px;font-weight:600;
+    box-shadow:0 4px 14px rgba(0,0,0,.12);
+    transition:all .18s;
+    font-family:'Sarabun',sans-serif;
+  }
+  .lp-toggle:hover{
+    background:#f0f9ff;
+    border-color:#0284c7;
+  }
+  .lp-toggle.active{
+    background:linear-gradient(135deg, #0284c7, #0ea5e9);
+    color:#fff;border-color:transparent;
+    box-shadow:0 4px 14px rgba(2,132,199,.4);
+  }
+  [data-theme="dark"] .lp-toggle{
+    background:rgba(30,41,59,.95);border-color:#334155;color:#bae6fd;
+  }
+  [data-theme="dark"] .lp-toggle:hover{background:#1e293b;}
+
+  .lp-body{
+    margin-top:6px;
+    background:rgba(255,255,255,.97);
+    border:1px solid #e2e8f0;
+    border-radius:10px;
+    padding:10px 4px;
+    box-shadow:0 8px 24px rgba(0,0,0,.15);
+    backdrop-filter:blur(10px);
+    width:200px;
+    display:none;
+    animation:lpSlide .2s ease-out;
+  }
+  @keyframes lpSlide{from{opacity:0;transform:translateY(-6px);}to{opacity:1;transform:translateY(0);}}
+  .lp-body.show{display:block;}
+  [data-theme="dark"] .lp-body{
+    background:rgba(30,41,59,.97);border-color:#334155;
+  }
+
+  .lp-section{padding:4px 8px;}
+  .lp-section + .lp-section{
+    border-top:1px solid #e2e8f0;margin-top:6px;padding-top:8px;
+  }
+  [data-theme="dark"] .lp-section + .lp-section{border-top-color:#334155;}
+  .lp-section-title{
+    font-size:10px;color:#64748b;font-weight:700;
+    letter-spacing:.5px;text-transform:uppercase;
+    margin-bottom:4px;padding:0 4px;
+  }
+  .lp-item{
+    display:flex;align-items:center;gap:8px;
+    padding:6px 8px;border-radius:6px;
+    cursor:pointer;font-size:12px;color:#0f172a;
+    transition:background .12s;
+  }
+  [data-theme="dark"] .lp-item{color:#e2e8f0;}
+  .lp-item:hover{background:#f0f9ff;}
+  [data-theme="dark"] .lp-item:hover{background:rgba(56,189,248,.1);}
+  .lp-item input[type="checkbox"]{
+    width:14px;height:14px;cursor:pointer;
+    accent-color:#0284c7;
+  }
+  .lp-swatch{
+    width:18px;height:14px;border-radius:3px;
+    flex-shrink:0;
+    box-shadow:0 1px 3px rgba(0,0,0,.15);
+  }
+
+  @media(max-width:600px){
+    .lp-body{width:170px;}
+  }
+
   /* =================== HEADER TOOLS (สเตป 6) =================== */
   .header-tools{
     display:flex;align-items:center;gap:6px;
@@ -1490,6 +1574,57 @@
 
       <div class="panel-body" style="position:relative;">
         <div id="map"></div>
+
+        <!-- Layer Panel (สเตป B3) -->
+        <div class="layer-panel" id="layerPanel">
+          <button class="lp-toggle" onclick="toggleLayerPanel()" id="lpToggle" title="ชั้นข้อมูลแผนที่">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="12 2 2 7 12 12 22 7 12 2"/>
+              <polyline points="2 17 12 22 22 17"/>
+              <polyline points="2 12 12 17 22 12"/>
+            </svg>
+            <span class="lp-label">ชั้นข้อมูล</span>
+          </button>
+          <div class="lp-body" id="lpBody">
+            <div class="lp-section">
+              <div class="lp-section-title">ขอบเขตการปกครอง</div>
+              <label class="lp-item">
+                <input type="checkbox" data-layer="province" onchange="onLayerToggle(this)">
+                <span class="lp-swatch" style="background:transparent;border:2px dashed #0c4a6e;"></span>
+                <span>ขอบเขตจังหวัด</span>
+              </label>
+              <label class="lp-item">
+                <input type="checkbox" data-layer="amphoe" onchange="onLayerToggle(this)">
+                <span class="lp-swatch" style="background:linear-gradient(135deg,#fbbf24,#fb923c,#f87171);"></span>
+                <span>ขอบเขต 6 อำเภอ</span>
+              </label>
+            </div>
+            <div class="lp-section">
+              <div class="lp-section-title">สถานที่สำคัญ</div>
+              <label class="lp-item">
+                <input type="checkbox" data-layer="amphoe_office" onchange="onLayerToggle(this)">
+                <span class="lp-swatch" style="background:#7c3aed;"></span>
+                <span>ที่ว่าการอำเภอ</span>
+              </label>
+              <label class="lp-item">
+                <input type="checkbox" data-layer="hospital" onchange="onLayerToggle(this)">
+                <span class="lp-swatch" style="background:#ef4444;"></span>
+                <span>โรงพยาบาล</span>
+              </label>
+              <label class="lp-item">
+                <input type="checkbox" data-layer="shelter" onchange="onLayerToggle(this)">
+                <span class="lp-swatch" style="background:#f59e0b;"></span>
+                <span>ศูนย์อพยพ</span>
+              </label>
+              <label class="lp-item">
+                <input type="checkbox" data-layer="reservoir" onchange="onLayerToggle(this)">
+                <span class="lp-swatch" style="background:#06b6d4;"></span>
+                <span>อ่างเก็บน้ำ</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
         <div class="map-legend">
           <div style="font-weight:700;margin-bottom:6px;font-size:12px;">สถานะระดับน้ำ</div>
           <div class="lg-item"><span class="dot" style="background:#16a34a;"></span>ปกติ (ธงเขียว)</div>
@@ -2230,6 +2365,7 @@ let mapInstance, markers = {};
 function initMap(stations){
   cachedStations = stations;  // เก็บไว้ใช้ใน heatmap
   if(mapInstance){mapInstance.remove();}
+  mapLayersInstance = null;  // reset layer manager เมื่อ map ถูก rebuild
   mapInstance = L.map("map", {zoomControl:true}).setView([17.25, 102.2], 10);
   L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}",{
     attribution:'Tiles &copy; Esri',
@@ -2792,6 +2928,65 @@ function clearHeatmap(){
   if(rainBadgeLayer){ mapInstance.removeLayer(rainBadgeLayer); rainBadgeLayer = null; }
   if(riskBadgeLayer){ mapInstance.removeLayer(riskBadgeLayer); riskBadgeLayer = null; }
 }
+
+/* ===================================================================
+ *  สเตป B3: Layer Panel — Boundary + POI layers
+ * =================================================================== */
+let mapLayersInstance = null;
+
+function ensureMapLayers(){
+  if(!mapLayersInstance && window.MapLayers && mapInstance){
+    mapLayersInstance = new MapLayers(mapInstance);
+  }
+  return mapLayersInstance;
+}
+
+function toggleLayerPanel(){
+  const body = document.getElementById("lpBody");
+  const btn = document.getElementById("lpToggle");
+  if(!body || !btn) return;
+  const isOpen = body.classList.toggle("show");
+  btn.classList.toggle("active", isOpen);
+}
+
+async function onLayerToggle(checkbox){
+  const layer = checkbox.dataset.layer;
+  const on = checkbox.checked;
+  const inst = ensureMapLayers();
+  if(!inst){
+    showToast && showToast("⚠️ แผนที่ยังไม่พร้อม", "error");
+    checkbox.checked = false;
+    return;
+  }
+
+  // ถ้าเปิด toggle อะไรก็ตาม ให้ปิด layer panel โดยอัตโนมัติเพื่อดูแผนที่ได้เต็มที่
+  // (แต่ไม่ปิดถ้า checkbox อยู่ในกลุ่มเดียวกันหลายๆ ชั้น)
+  await inst.toggle(layer, on);
+
+  if(on && typeof showToast === "function"){
+    const labels = {
+      province: "ขอบเขตจังหวัด",
+      amphoe: "ขอบเขต 6 อำเภอ",
+      hospital: "โรงพยาบาล",
+      amphoe_office: "ที่ว่าการอำเภอ",
+      shelter: "ศูนย์อพยพ",
+      reservoir: "อ่างเก็บน้ำ",
+    };
+    showToast(`✅ เปิดชั้น: ${labels[layer]}`, "success");
+  }
+}
+
+// ปิด layer panel เมื่อคลิกที่อื่น
+document.addEventListener("click", e => {
+  if(!e.target.closest(".layer-panel")){
+    const body = document.getElementById("lpBody");
+    const btn = document.getElementById("lpToggle");
+    if(body && body.classList.contains("show") && !body.contains(e.target)){
+      body.classList.remove("show");
+      btn?.classList.remove("active");
+    }
+  }
+});
 
 /* ===================================================================
  *  สเตป 3.5: คาดการณ์ระดับน้ำ (Water Level Forecast)
