@@ -1,420 +1,258 @@
 /**
- * ═══════════════════════════════════════════════════════════════
- * ระบบเฝ้าระวังสถานการณ์น้ำ จ.หนองบัวลำภู
- * Google Apps Script Backend — Code.gs
- * ═══════════════════════════════════════════════════════════════
- * 
- * วิธีติดตั้ง:
- * 1. สร้าง Google Sheet ใหม่
- * 2. Extensions → Apps Script
- * 3. วางโค้ดนี้ทั้งหมดแทนที่โค้ดเดิม
- * 4. รัน initSheets() ครั้งแรก (จะสร้าง Sheet อัตโนมัติ)
- * 5. Deploy → New deployment → Web app
- *    - Execute as: Me
- *    - Who has access: Anyone
- * 6. คัดลอก URL ไปวางในแดชบอร์ด (ตั้งค่า)
- * ═══════════════════════════════════════════════════════════════
- */
+ * ============================================================
+ *  ระบบแดชบอร์ดสถานการณ์น้ำจังหวัดหนองบัวลำภู
+ *  Google Apps Script Backend — v3 (+ PIN auth)
+ * ============================================================
+ *  PIN: เปลี่ยนที่ VALID_PIN ด้านล่าง
+ * ============================================================ */
 
-// ─── สถานีวัดระดับน้ำ ───
-const STATION_CONFIG = [
-  {id:1,name:"วังปลาป้อม",amphoe:"นาวัง",river:"ลำน้ำพะเนียง",red:290,yellow:289.5,greenMax:289},
-  {id:2,name:"โคกกระทอ",amphoe:"นาวัง",river:"ลำน้ำพะเนียง",red:266,yellow:265.5,greenMax:265},
-  {id:3,name:"วังสามหาบ",amphoe:"นาวัง",river:"ลำน้ำพะเนียง",red:258,yellow:257.5,greenMax:257},
-  {id:4,name:"บ้านหนองด่าน",amphoe:"นากลาง",river:"ลำน้ำพะเนียง",red:249,yellow:248.5,greenMax:248},
-  {id:5,name:"บ้านฝั่งแดง",amphoe:"นากลาง",river:"ลำน้ำพะเนียง",red:237,yellow:236.5,greenMax:236},
-  {id:6,name:"ปตร.หนองหว้าใหญ่",amphoe:"เมืองฯ",river:"ลำน้ำพะเนียง",red:216,yellow:215.5,greenMax:215},
-  {id:7,name:"วังหมื่น",amphoe:"เมืองฯ",river:"ลำน้ำพะเนียง",red:210,yellow:209.5,greenMax:209},
-  {id:8,name:"ปตร.ปู่หลอด",amphoe:"เมืองฯ",river:"ลำน้ำพะเนียง",red:203,yellow:202.5,greenMax:202.5},
-  {id:9,name:"บ้านข้องโป้",amphoe:"เมืองฯ",river:"ลำน้ำพะเนียง",red:201,yellow:200.5,greenMax:200},
-  {id:10,name:"ปตร.หัวนา",amphoe:"เมืองฯ",river:"ลำน้ำพะเนียง",red:191,yellow:190.5,greenMax:190},
-  {id:11,name:"คลองบุญทัน",amphoe:"สุวรรณคูหา",river:"ลำน้ำโมง",red:231,yellow:230.5,greenMax:230},
-  {id:12,name:"บ้านโคก",amphoe:"สุวรรณคูหา",river:"ลำน้ำโมง",red:218,yellow:217.5,greenMax:217}
+// ===== CONFIG =====
+const SHEET_STATIONS  = "Stations";
+const SHEET_WATER     = "WaterLevel";
+const SHEET_RAIN      = "Rainfall";
+const SHEET_RESERVOIR = "Reservoir";
+const SHEET_SETTINGS  = "Settings";
+
+// ===== PIN =====
+const VALID_PIN    = "123456";  // << เปลี่ยนรหัสตรงนี้
+const PIN_REQUIRED = true;       // false = ปิด PIN ระหว่าง dev
+
+const RESERVOIR_HEADERS = [
+  "reservoir_id","reservoir_name","amphoe","capacity",
+  "current_volume","date","reporter","updated_at"
 ];
 
-/**
- * สร้าง Sheet เริ่มต้น — รัน 1 ครั้ง
- */
-function initSheets() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  
-  // ─── Sheet: CurrentLevels ───
-  let current = ss.getSheetByName('CurrentLevels');
-  if (!current) {
-    current = ss.insertSheet('CurrentLevels');
-    current.appendRow(['stationId','stationName','amphoe','river','level','status','lastUpdate','weather','rain','note']);
-    STATION_CONFIG.forEach(s => {
-      current.appendRow([s.id, s.name, s.amphoe, s.river, '', '', '', '', '', '']);
-    });
-    // จัดรูปแบบ header
-    current.getRange(1, 1, 1, 10).setFontWeight('bold').setBackground('#1a73e8').setFontColor('#fff');
-    current.setFrozenRows(1);
-    current.autoResizeColumns(1, 10);
-  }
-  
-  // ─── Sheet: ReportHistory ───
-  let history = ss.getSheetByName('ReportHistory');
-  if (!history) {
-    history = ss.insertSheet('ReportHistory');
-    history.appendRow(['timestamp','date','time','stationId','stationName','level','status','weather','rain','note','reporter']);
-    history.getRange(1, 1, 1, 11).setFontWeight('bold').setBackground('#1a73e8').setFontColor('#fff');
-    history.setFrozenRows(1);
-    history.autoResizeColumns(1, 11);
-  }
-  
-  // ─── Sheet: StationConfig ───
-  let config = ss.getSheetByName('StationConfig');
-  if (!config) {
-    config = ss.insertSheet('StationConfig');
-    config.appendRow(['stationId','stationName','amphoe','river','red','yellow','greenMax']);
-    STATION_CONFIG.forEach(s => {
-      config.appendRow([s.id, s.name, s.amphoe, s.river, s.red, s.yellow, s.greenMax]);
-    });
-    config.getRange(1, 1, 1, 7).setFontWeight('bold').setBackground('#1a73e8').setFontColor('#fff');
-    config.setFrozenRows(1);
-    config.autoResizeColumns(1, 7);
-  }
-  
-  SpreadsheetApp.getUi().alert('✅ สร้าง Sheet เรียบร้อย!\n\nCurrentLevels — ระดับน้ำปัจจุบัน\nReportHistory — ประวัติรายงาน\nStationConfig — ตั้งค่าสถานี');
-}
+// ===== ENTRY POINTS =====
 
-/**
- * Web App Handler — GET
- */
 function doGet(e) {
-  const action = e.parameter.action || 'getLevels';
-  const callback = e.parameter.callback || 'callback';
-  let result;
-  
+  const params   = (e && e.parameter) ? e.parameter : {};
+  const action   = (params.action   || "summary").toLowerCase();
+  const callback = params.callback;
+  let data;
   try {
     switch (action) {
-      case 'getLevels':
-        result = getLevels();
-        break;
-      case 'addReport':
-        result = addReport(e.parameter);
-        break;
-      case 'getHistory':
-        result = getHistory(e.parameter.limit || 20);
-        break;
-      case 'getConfig':
-        result = getConfig();
-        break;
-      default:
-        result = {error: 'Unknown action: ' + action};
+      case "summary":     data = getSummary(); break;
+      case "stations":    data = getStations(params.river); break;
+      case "water":       data = getWaterLevels(params.station_id, parseInt(params.days||"7")); break;
+      case "rain":        data = getRainfall(parseInt(params.days||"7")); break;
+      case "reservoir":   data = getReservoirs(); break;
+      case "history":     data = getHistory(parseInt(params.limit||"20")); break;
+      case "dailyreport": data = getDailyReport(params.date); break;
+      case "ping":        data = { ok:true, time:new Date().toISOString() }; break;
+      default:            data = { error:"unknown action: "+action };
     }
-  } catch (err) {
-    result = {error: err.toString()};
-  }
-  
-  // JSONP response
-  const output = callback + '(' + JSON.stringify(result) + ')';
-  return ContentService.createTextOutput(output).setMimeType(ContentService.MimeType.JAVASCRIPT);
+  } catch(err) { data = { error:err.toString() }; }
+  return respond(data, callback);
 }
 
-/**
- * POST handler (alternative)
- */
 function doPost(e) {
+  let payload = {};
   try {
-    const data = JSON.parse(e.postData.contents);
-    let result;
-    
-    if (data.action === 'addReport') {
-      result = addReport(data);
-    } else if (data.action === 'batchUpdate') {
-      result = batchUpdateLevels(data.levels);
-    } else {
-      result = {error: 'Unknown action'};
-    }
-    
-    return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
-  } catch (err) {
-    return ContentService.createTextOutput(JSON.stringify({error: err.toString()})).setMimeType(ContentService.MimeType.JSON);
-  }
-}
+    if (e && e.postData && e.postData.contents) payload = JSON.parse(e.postData.contents);
+    else if (e && e.parameter) payload = e.parameter;
+  } catch(err) { return respond({ ok:false, error:"Invalid JSON: "+err.toString() }); }
 
-/**
- * ดึงระดับน้ำปัจจุบัน
- */
-function getLevels() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName('CurrentLevels');
-  if (!sheet) return {error: 'Sheet CurrentLevels not found. Run initSheets() first.'};
-  
-  const data = sheet.getDataRange().getValues();
-  const headers = data[0];
-  const levels = [];
-  
-  for (let i = 1; i < data.length; i++) {
-    const row = {};
-    headers.forEach((h, j) => { row[h] = data[i][j]; });
-    if (row.stationId && row.level !== '') {
-      levels.push({
-        stationId: row.stationId,
-        name: row.stationName,
-        level: row.level,
-        status: row.status,
-        lastUpdate: row.lastUpdate ? row.lastUpdate.toString() : '',
-        weather: row.weather || '',
-        rain: row.rain || ''
-      });
+  const WRITE_ACTIONS = ["savewater","saverain","savereservoir","savedailyreport"];
+  const action = (payload.action || "").toLowerCase();
+
+  // PIN CHECK สำหรับ action เขียนข้อมูล
+  if (PIN_REQUIRED && WRITE_ACTIONS.indexOf(action) !== -1) {
+    const pin = String(payload.pin || "").trim();
+    if (pin !== VALID_PIN) {
+      return respond({ ok:false, error:"PIN ไม่ถูกต้อง", code:"INVALID_PIN" });
     }
   }
-  
-  return {
-    success: true,
-    levels: levels,
-    timestamp: new Date().toISOString()
-  };
-}
 
-/**
- * บันทึกรายงานระดับน้ำ
- */
-function addReport(params) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const stationId = parseInt(params.stationId || params.station_id);
-  const level = parseFloat(params.level);
-  
-  if (!stationId || isNaN(level)) {
-    return {error: 'stationId and level are required'};
-  }
-  
-  const stationName = params.station || params.stationName || '';
-  const status = params.status || getStatusText(stationId, level);
-  const date = params.date || Utilities.formatDate(new Date(), 'Asia/Bangkok', 'yyyy-MM-dd');
-  const time = params.time || Utilities.formatDate(new Date(), 'Asia/Bangkok', 'HH:mm');
-  const weather = params.weather || '';
-  const rain = params.rain || '';
-  const note = params.note || '';
-  const now = new Date();
-  
-  // 1. อัพเดท CurrentLevels
-  const current = ss.getSheetByName('CurrentLevels');
-  if (current) {
-    const data = current.getDataRange().getValues();
-    for (let i = 1; i < data.length; i++) {
-      if (data[i][0] == stationId) {
-        current.getRange(i + 1, 5).setValue(level);       // level
-        current.getRange(i + 1, 6).setValue(status);       // status
-        current.getRange(i + 1, 7).setValue(now);          // lastUpdate
-        current.getRange(i + 1, 8).setValue(weather);      // weather
-        current.getRange(i + 1, 9).setValue(rain);         // rain
-        current.getRange(i + 1, 10).setValue(note);        // note
-        
-        // Conditional formatting — สีพื้นหลังตามสถานะ
-        const statusColors = {'ธงเขียว': '#d4edda', 'ธงเหลือง': '#fff3cd', 'ธงแดง': '#f8d7da'};
-        const bgColor = statusColors[status] || '#fff';
-        current.getRange(i + 1, 5, 1, 2).setBackground(bgColor);
-        break;
-      }
+  let result;
+  try {
+    switch (action) {
+      case "savewater":       result = saveWaterLevel(payload); break;
+      case "saverain":        result = saveRainfall(payload); break;
+      case "savereservoir":   result = saveReservoir(payload); break;
+      case "savedailyreport": result = saveDailyReport(payload); break;
+      case "summary":         result = getSummary(); break;
+      case "reservoir":       result = getReservoirs(); break;
+      default:                result = { ok:false, error:"unknown action: "+action };
     }
-  }
-  
-  // 2. เพิ่มใน ReportHistory
-  const history = ss.getSheetByName('ReportHistory');
-  if (history) {
-    history.insertRowAfter(1);
-    history.getRange(2, 1, 1, 11).setValues([[
-      now, date, time, stationId, stationName, level, status, weather, rain, note, Session.getActiveUser().getEmail() || 'web'
-    ]]);
-  }
-  
-  return {
-    success: true,
-    message: 'Report saved',
-    stationId: stationId,
-    level: level,
-    status: status,
-    timestamp: now.toISOString()
-  };
+  } catch(err) { result = { ok:false, error:err.toString() }; }
+  return respond(result);
 }
 
-/**
- * คำนวณสถานะจากระดับน้ำ
- */
-function getStatusText(stationId, level) {
-  const station = STATION_CONFIG.find(s => s.id == stationId);
-  if (!station) return 'ไม่ทราบ';
-  if (level >= station.red) return 'ธงแดง';
-  if (level >= station.yellow) return 'ธงเหลือง';
-  return 'ธงเขียว';
+// ===== READ =====
+
+function getStations(river) {
+  const rows = sheetToObjects(ss().getSheetByName(SHEET_STATIONS));
+  if (river) return rows.filter(r => String(r.river||"").indexOf(river)!==-1);
+  return rows;
 }
 
-/**
- * ดึงประวัติรายงาน
- */
+function getSummary() {
+  const stations = getStations(), latest = getLatestWaterByStation();
+  let normal=0,warn=0,crit=0;
+  const merged = stations.map(st => {
+    const w=latest[st.station_id]||{}, level=parseFloat(w.level);
+    let status="ปกติ";
+    if(!isNaN(level)){
+      if(parseFloat(st.bank_level)&&level>=parseFloat(st.bank_level)) status="วิกฤติ";
+      else if(parseFloat(st.warn_level)&&level>=parseFloat(st.warn_level)) status="เฝ้าระวัง";
+    }
+    if(status==="วิกฤติ") crit++; else if(status==="เฝ้าระวัง") warn++; else normal++;
+    return Object.assign({},st,{current_level:isNaN(level)?null:level,flow:w.flow||null,status,last_update:w.date?(w.date+" "+(w.time||"")):null});
+  });
+  const rain=getRainfall(1);
+  let avgRain=0;
+  if(rain.length>0) avgRain=rain.reduce((a,r)=>a+(parseFloat(r.rain_24hr)||0),0)/rain.length;
+  return {total:stations.length,normal,warn,crit,avg_rain_24hr:avgRain,stations:merged,updated:new Date().toISOString()};
+}
+
+function getWaterLevels(stationId,days) {
+  const rows=sheetToObjects(ss().getSheetByName(SHEET_WATER));
+  const cutoff=new Date(); cutoff.setDate(cutoff.getDate()-(days||7));
+  return rows.filter(r=>{if(stationId&&r.station_id!==stationId)return false;const d=parseDate(r.date);return d&&d>=cutoff;}).sort((a,b)=>parseDate(a.date)-parseDate(b.date));
+}
+
+function getLatestWaterByStation() {
+  const rows=sheetToObjects(ss().getSheetByName(SHEET_WATER)), latest={};
+  rows.forEach(r=>{const sid=r.station_id;if(!sid)return;const d=parseDate(r.date);if(!latest[sid]||parseDate(latest[sid].date)<d)latest[sid]=r;});
+  return latest;
+}
+
+function getRainfall(days) {
+  const rows=sheetToObjects(ss().getSheetByName(SHEET_RAIN));
+  const cutoff=new Date(); cutoff.setDate(cutoff.getDate()-(days||7));
+  return rows.filter(r=>{const d=parseDate(r.date);return d&&d>=cutoff;}).sort((a,b)=>parseDate(b.date)-parseDate(a.date));
+}
+
+function getReservoirs() {
+  const sheet=getOrCreateReservoirSheet(), rows=sheetToObjects(sheet), latest={};
+  rows.forEach(r=>{const id=r.reservoir_id;if(!id)return;const d=parseDate(r.date);if(!latest[id]||parseDate(latest[id].date)<d)latest[id]=r;});
+  return Object.values(latest);
+}
+
 function getHistory(limit) {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName('ReportHistory');
-  if (!sheet) return {error: 'Sheet ReportHistory not found'};
-  
-  const data = sheet.getDataRange().getValues();
-  const headers = data[0];
-  const reports = [];
-  const maxRows = Math.min(data.length, parseInt(limit) + 1);
-  
-  for (let i = 1; i < maxRows; i++) {
-    const row = {};
-    headers.forEach((h, j) => { row[h] = data[i][j]; });
-    row.timestamp = row.timestamp ? row.timestamp.toString() : '';
-    reports.push(row);
-  }
-  
-  return {success: true, reports: reports};
+  const water=sheetToObjects(ss().getSheetByName(SHEET_WATER)).map(r=>Object.assign({type:"water"},r));
+  const rain=sheetToObjects(ss().getSheetByName(SHEET_RAIN)).map(r=>Object.assign({type:"rain"},r));
+  return water.concat(rain).sort((a,b)=>(parseDate(b.date)||new Date(0))-(parseDate(a.date)||new Date(0))).slice(0,limit||20);
 }
 
-/**
- * ดึงตั้งค่าสถานี
- */
-function getConfig() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName('StationConfig');
-  if (!sheet) return {error: 'Sheet StationConfig not found'};
-  
-  const data = sheet.getDataRange().getValues();
-  const headers = data[0];
-  const config = [];
-  
-  for (let i = 1; i < data.length; i++) {
-    const row = {};
-    headers.forEach((h, j) => { row[h] = data[i][j]; });
-    config.push(row);
-  }
-  
-  return {success: true, config: config};
+function getDailyReport(targetDate) {
+  const sheet=ss().getSheetByName("DailyReport");
+  if(!sheet) return null;
+  const rows=sheetToObjects(sheet);
+  if(!rows.length) return null;
+  if(targetDate) return rows.find(r=>String(r.date).slice(0,10)===targetDate)||null;
+  rows.sort((a,b)=>parseDate(b.date)-parseDate(a.date));
+  return rows[0];
 }
 
-/**
- * Batch update ระดับน้ำหลายสถานี
- */
-function batchUpdateLevels(levels) {
-  if (!levels || !Array.isArray(levels)) return {error: 'levels array required'};
-  
-  let updated = 0;
-  levels.forEach(item => {
-    try {
-      addReport({
-        stationId: item.stationId,
-        level: item.level,
-        station: item.name || '',
-        weather: item.weather || '',
-        rain: item.rain || ''
-      });
-      updated++;
-    } catch (e) {}
-  });
-  
-  return {success: true, updated: updated};
+// ===== WRITE =====
+
+function saveWaterLevel(p) {
+  const sheet=ss().getSheetByName(SHEET_WATER), headers=getHeaders(sheet);
+  sheet.appendRow(headers.map(h=>p[h]||""));
+  return {ok:true,message:"บันทึกข้อมูลระดับน้ำเรียบร้อย",station_id:p.station_id};
 }
 
-/**
- * สร้าง Trigger สำหรับแจ้งเตือนอัตโนมัติ
- * รันทุก 15 นาที ถ้ามีสถานีวิกฤติจะส่ง LINE Notify
- */
-function setupAlertTrigger() {
-  // ลบ trigger เดิม
-  ScriptApp.getProjectTriggers().forEach(t => {
-    if (t.getHandlerFunction() === 'checkAlerts') ScriptApp.deleteTrigger(t);
-  });
-  
-  // สร้าง trigger ใหม่ ทุก 15 นาที
-  ScriptApp.newTrigger('checkAlerts')
-    .timeBased()
-    .everyMinutes(15)
-    .create();
-  
-  SpreadsheetApp.getUi().alert('✅ ตั้งค่าแจ้งเตือนอัตโนมัติทุก 15 นาที');
+function saveRainfall(p) {
+  const sheet=ss().getSheetByName(SHEET_RAIN), headers=getHeaders(sheet);
+  sheet.appendRow(headers.map(h=>p[h]||""));
+  return {ok:true,message:"บันทึกข้อมูลฝนเรียบร้อย"};
 }
 
-/**
- * ตรวจสอบสถานะและแจ้งเตือน
- */
-function checkAlerts() {
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  const sheet = ss.getSheetByName('CurrentLevels');
-  if (!sheet) return;
-  
-  const data = sheet.getDataRange().getValues();
-  const criticals = [];
-  const warnings = [];
-  
-  for (let i = 1; i < data.length; i++) {
-    const stationId = data[i][0];
-    const name = data[i][1];
-    const level = data[i][4];
-    const status = data[i][5];
-    
-    if (status === 'ธงแดง') criticals.push({name, level});
-    else if (status === 'ธงเหลือง') warnings.push({name, level});
-  }
-  
-  if (criticals.length > 0) {
-    const message = `🔴 แจ้งเตือนวิกฤติ จ.หนองบัวลำภู\n` +
-      `สถานีวิกฤติ ${criticals.length} แห่ง:\n` +
-      criticals.map(c => `• ${c.name}: ${c.level} ม.รทก.`).join('\n') +
-      (warnings.length ? `\n\n🟡 เฝ้าระวัง ${warnings.length} แห่ง` : '');
-    
-    // ส่ง LINE Notify (ใส่ Token ใน Script Properties)
-    const lineToken = PropertiesService.getScriptProperties().getProperty('LINE_NOTIFY_TOKEN');
-    if (lineToken) sendLineNotify(lineToken, message);
-    
-    // ส่ง Email แจ้งเตือน (ใส่ Email ใน Script Properties)
-    const alertEmail = PropertiesService.getScriptProperties().getProperty('ALERT_EMAIL');
-    if (alertEmail) {
-      MailApp.sendEmail({
-        to: alertEmail,
-        subject: `⚠️ แจ้งเตือนวิกฤติน้ำ จ.หนองบัวลำภู — ${criticals.length} สถานี`,
-        body: message
-      });
+function saveReservoir(p) {
+  const sheet=getOrCreateReservoirSheet(), payload=normalizeReservoirPayload(p);
+  if(!payload.reservoir_id&&!payload.reservoir_name) return {ok:false,error:"missing reservoir_id or reservoir_name"};
+  const data=sheet.getDataRange().getValues(), headers=data[0];
+  const idIdx=headers.indexOf("reservoir_id"), nmIdx=headerIndex(headers,["reservoir_name","name"]);
+  const curIdx=headerIndex(headers,["current_volume","current"]), dateIdx=headers.indexOf("date"), updIdx=headers.indexOf("updated_at");
+  const dateStr=String(payload.date||"").slice(0,10);
+
+  for(let i=1;i<data.length;i++){
+    const sameId  = idIdx>=0&&payload.reservoir_id  &&String(data[i][idIdx]).trim()===String(payload.reservoir_id).trim();
+    const sameName= nmIdx>=0&&payload.reservoir_name&&String(data[i][nmIdx]).trim()===String(payload.reservoir_name).trim();
+    const sameDate= dateIdx>=0&&String(data[i][dateIdx]).slice(0,10)===dateStr;
+    if((sameId||sameName)&&sameDate){
+      if(curIdx>=0) sheet.getRange(i+1,curIdx+1).setValue(payload.current_volume);
+      if(updIdx>=0) sheet.getRange(i+1,updIdx+1).setValue(new Date());
+      headers.forEach((h,col)=>{if(["current_volume","current","updated_at","date"].indexOf(h)!==-1)return;if(payload[h]!==undefined&&payload[h]!==null&&payload[h]!=="")sheet.getRange(i+1,col+1).setValue(payload[h]);});
+      return {ok:true,message:"อัปเดต "+(payload.reservoir_name||payload.reservoir_id)+" วันที่ "+dateStr};
     }
   }
+  const row=headers.map(h=>{if(h==="updated_at")return new Date();return payload[h]!==undefined?payload[h]:"";});
+  sheet.appendRow(row);
+  return {ok:true,message:"บันทึก "+(payload.reservoir_name||payload.reservoir_id)+" วันที่ "+dateStr};
 }
 
-/**
- * ส่ง LINE Notify
- */
-function sendLineNotify(token, message) {
-  const url = 'https://notify-api.line.me/api/notify';
-  const options = {
-    method: 'post',
-    headers: {'Authorization': 'Bearer ' + token},
-    payload: {'message': message}
-  };
-  try {
-    UrlFetchApp.fetch(url, options);
-  } catch (e) {
-    console.error('LINE Notify error:', e);
+function saveDailyReport(p) {
+  const ss_obj=ss(); let sheet=ss_obj.getSheetByName("DailyReport");
+  if(!sheet){
+    sheet=ss_obj.insertSheet("DailyReport");
+    sheet.appendRow(["date","reporter","dam_level","dam_use","dam_pct","dam_in","dam_out","dam_total","tmd_temp","tmd_cloud","tmd_rain_yest","tmd_pressure","tmd_humidity","tmd_wind","tmd_temp_min","tmd_visibility","tmd_rain_year","aqi_pm25","aqi_value","aqi_days_over","disaster_status","disaster_amphoe","disaster_note","saved_at"]);
   }
-}
-
-/**
- * สร้าง Menu
- */
-function onOpen() {
-  SpreadsheetApp.getUi().createMenu('🌊 ระบบน้ำ')
-    .addItem('🔧 สร้าง Sheet เริ่มต้น', 'initSheets')
-    .addItem('🔔 ตั้งค่าแจ้งเตือนอัตโนมัติ', 'setupAlertTrigger')
-    .addItem('📊 ดูสถานะปัจจุบัน', 'showCurrentStatus')
-    .addToUi();
-}
-
-/**
- * แสดงสถานะปัจจุบัน (Dialog)
- */
-function showCurrentStatus() {
-  const result = getLevels();
-  if (result.error) {
-    SpreadsheetApp.getUi().alert('❌ ' + result.error);
-    return;
+  const headers=getHeaders(sheet), dateStr=String(p.date||"").slice(0,10), dateIdx=headers.indexOf("date"), data=sheet.getDataRange().getValues();
+  for(let i=1;i<data.length;i++){
+    if(String(data[i][dateIdx]).slice(0,10)===dateStr){
+      const row=headers.map(h=>h==="saved_at"?new Date():(p[h]||data[i][headers.indexOf(h)]));
+      sheet.getRange(i+1,1,1,headers.length).setValues([row]);
+      return {ok:true,message:"อัปเดตรายงานวันที่ "+dateStr};
+    }
   }
-  
-  let msg = '📊 สถานะระดับน้ำ จ.หนองบัวลำภู\n\n';
-  result.levels.forEach(l => {
-    const emoji = l.status === 'ธงแดง' ? '🔴' : l.status === 'ธงเหลือง' ? '🟡' : '🟢';
-    msg += `${emoji} ${l.name}: ${l.level} ม.รทก. (${l.status})\n`;
-  });
-  
-  SpreadsheetApp.getUi().alert(msg);
+  sheet.appendRow(headers.map(h=>h==="saved_at"?new Date():(p[h]||"")));
+  return {ok:true,message:"บันทึกรายงานวันที่ "+dateStr};
 }
+
+// ===== SETUP =====
+function runSetup() {
+  const ss_obj=ss();
+  function ensure(name,hdr){let sh=ss_obj.getSheetByName(name);if(!sh){sh=ss_obj.insertSheet(name);}if(sh.getLastRow()===0)sh.appendRow(hdr);return sh;}
+  ensure(SHEET_STATIONS,["station_id","name","river","village","amphoe","lat","lon","bank_level","warn_level","crit_level","active"]);
+  ensure(SHEET_WATER,   ["station_id","date","time","level","flow","recorder","remark"]);
+  ensure(SHEET_RAIN,    ["station_id","amphoe","date","rain_24hr","rain_7day","rain_month","recorder","remark"]);
+  ensure(SHEET_RESERVOIR,RESERVOIR_HEADERS);
+  ensure(SHEET_SETTINGS,["key","value"]);
+  const stSh=ss_obj.getSheetByName(SHEET_STATIONS);
+  if(stSh.getLastRow()<=1){
+    [["PN01","วังปลาป้อม","ลำน้ำพะเนียง","บ้านโคกเจริญ","นาวัง",17.42065,101.99304,290.0,289.5,290.0,true],
+     ["PN02","โคกกระทอ","ลำน้ำพะเนียง","บ้านโคกกระทอ","นาวัง",17.34314,102.07167,266.0,265.5,266.0,true],
+     ["PN03","วังสามหาบ","ลำน้ำพะเนียง","บ้านวังสามหาบ","นาวัง",17.30990,102.10789,258.0,257.5,258.0,true],
+     ["PN04","บ้านหนองด่าน","ลำน้ำพะเนียง","บ้านหนองด่าน","นากลาง",17.27936,102.16552,249.0,248.5,249.0,true],
+     ["PN05","บ้านฝั่งแดง","ลำน้ำพะเนียง","บ้านฝั่งแดง","นากลาง",17.26730,102.22728,237.0,236.5,237.0,true],
+     ["PN06","ปตร.หนองหว้าใหญ่","ลำน้ำพะเนียง","บ้านหนองหว้าใหญ่","เมืองหนองบัวลำภู",17.17981,102.38617,216.0,215.5,216.0,true],
+     ["PN07","วังหมื่น","ลำน้ำพะเนียง","บ้านวังหมื่น","เมืองหนองบัวลำภู",17.18317,102.43244,210.0,209.5,210.0,true],
+     ["PN08","ปตร.ปู่หลอด","ลำน้ำพะเนียง","บ้านโนนคูณ","เมืองหนองบัวลำภู",17.11487,102.45435,203.0,202.5,203.0,true],
+     ["PN09","บ้านข้องโป้","ลำน้ำพะเนียง","บ้านข้องโป้","เมืองหนองบัวลำภู",17.08217,102.45068,201.0,200.5,201.0,true],
+     ["PN10","ปตร.หัวนา","ลำน้ำพะเนียง","บ้านดอนหัน","เมืองหนองบัวลำภู",17.00067,102.42400,191.0,190.5,191.0,true],
+     ["MG01","คลองบุญทัน","ลำน้ำโมง","บ้านบุญทัน","สุวรรณคูหา",17.54512,102.16832,231.0,230.5,231.0,true],
+     ["MG02","บ้านโคก","ลำน้ำโมง","บ้านโคก","สุวรรณคูหา",17.54952,102.20425,218.0,217.5,218.0,true],
+    ].forEach(r=>stSh.appendRow(r));
+  }
+  const resSh=ss_obj.getSheetByName(SHEET_RESERVOIR);
+  if(resSh.getLastRow()<=1){
+    const today=Utilities.formatDate(new Date(),"Asia/Bangkok","yyyy-MM-dd");
+    [["R01","ห้วยยางเงาะ","เมืองหนองบัวลำภู",0.400,0.240],["R02","ห้วยซับม่วง","ศรีบุญเรือง",0.750,0.450],
+     ["R03","ห้วยเหล่ายาง","เมืองหนองบัวลำภู",2.469,1.481],["R04","อ่างน้ำบอง","โนนสัง",20.800,9.984],
+     ["R05","ห้วยสนามชัย","นากลาง",0.330,0.198],["R06","ผาวัง","นาวัง",2.122,1.273],
+     ["R07","ห้วยลาดกั่ว","นาวัง",0.842,0.505],["R08","ห้วยโซ่","สุวรรณคูหา",1.430,0.858],
+     ["R09","ห้วยไร่ 1","นากลาง",0.200,0.120],["R10","ห้วยไร่ 2","นากลาง",0.695,0.417],
+     ["R11","ห้วยลำใย","นากลาง",0.450,0.270],["R12","ห้วยโป่งซาง","นากลาง",0.300,0.180],
+     ["R13","ห้วยบ้านคลองเจริญ","สุวรรณคูหา",0.623,0.374],["R14","ผาจ้ำน้ำ","นาวัง",0.085,0.051],
+    ].forEach(d=>resSh.appendRow([d[0],d[1],d[2],d[3],d[4],today,"ระบบ",new Date()]));
+  }
+  Logger.log("Setup complete ✅");
+}
+
+// ===== HELPERS =====
+function getOrCreateReservoirSheet(){const ss_obj=ss();let sh=ss_obj.getSheetByName(SHEET_RESERVOIR);if(!sh){sh=ss_obj.insertSheet(SHEET_RESERVOIR);sh.appendRow(RESERVOIR_HEADERS);}if(sh.getLastRow()===0||sh.getLastColumn()===0)sh.appendRow(RESERVOIR_HEADERS);return sh;}
+function normalizeReservoirPayload(p){return{reservoir_id:p.reservoir_id||p.id||"",reservoir_name:p.reservoir_name||p.name||"",amphoe:p.amphoe||"",capacity:toNum(p.capacity),current_volume:toNum(p.current_volume!==undefined?p.current_volume:p.current),date:p.date||Utilities.formatDate(new Date(),"Asia/Bangkok","yyyy-MM-dd"),reporter:p.reporter||"",updated_at:new Date()};}
+function toNum(v){if(v===""||v===null||v===undefined)return "";const n=parseFloat(v);return isNaN(n)?"":n;}
+function headerIndex(headers,names){for(let i=0;i<names.length;i++){const idx=headers.indexOf(names[i]);if(idx>=0)return idx;}return -1;}
+function ss(){return SpreadsheetApp.getActiveSpreadsheet();}
+function getHeaders(sheet){return sheet.getRange(1,1,1,sheet.getLastColumn()).getValues()[0];}
+function sheetToObjects(sheet){if(!sheet)return[];const data=sheet.getDataRange().getValues();if(data.length<2)return[];const headers=data[0];return data.slice(1).map(row=>{const obj={};headers.forEach((h,i)=>{let v=row[i];if(v instanceof Date)v=Utilities.formatDate(v,"Asia/Bangkok","yyyy-MM-dd");obj[h]=v;});return obj;}).filter(o=>Object.values(o).some(v=>v!==""&&v!==null&&v!==undefined));}
+function parseDate(v){if(!v)return null;if(v instanceof Date)return v;const d=new Date(v);return isNaN(d.getTime())?null:d;}
+function respond(data,callback){const json=JSON.stringify(data);if(callback)return ContentService.createTextOutput(callback+"("+json+");").setMimeType(ContentService.MimeType.JAVASCRIPT);return ContentService.createTextOutput(json).setMimeType(ContentService.MimeType.JSON);}
+
+// ===== TEST =====
+function testPin(){Logger.log("PIN test: "+(VALID_PIN==="123456"?"✅ ตรงกัน":"❌ ไม่ตรง"));}
+function testGetSummary(){Logger.log(JSON.stringify(getSummary(),null,2));}
+function testGetReservoirs(){Logger.log(JSON.stringify(getReservoirs(),null,2));}
