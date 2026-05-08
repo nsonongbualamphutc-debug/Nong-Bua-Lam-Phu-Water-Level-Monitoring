@@ -109,6 +109,121 @@
 
   footer{background:#0f172a;color:#94a3b8;padding:24px;margin-top:30px;text-align:center;font-size:13px;}
   footer strong{color:#fff;}
+
+
+/* Reservoir section injected from snippet */
+/* Reservoir mini cards */
+.reservoir-section {
+  margin-bottom: 20px;
+}
+.reservoir-section .section-title {
+  font-size: 15px; font-weight: 700; color: var(--brand);
+  display: flex; align-items: center; gap: 8px; margin-bottom: 14px;
+}
+.reservoir-section .section-title::before {
+  content: ""; width: 4px; height: 18px; background: #0891b2; border-radius: 2px;
+}
+.res-summary-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px;
+  margin-bottom: 16px;
+}
+.res-mini-card {
+  background: var(--card); border-radius: 12px;
+  border: 1px solid #cffafe;
+  padding: 12px 14px; cursor: pointer;
+  transition: transform .18s, box-shadow .18s;
+  position: relative; overflow: hidden;
+}
+.res-mini-card::before {
+  content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 4px; border-radius: 12px 0 0 12px;
+}
+.res-mini-card.res-full::before   { background: #2563eb; }
+.res-mini-card.res-normal::before { background: #0d9488; }
+.res-mini-card.res-warn::before   { background: #f59e0b; }
+.res-mini-card.res-crit::before   { background: #dc2626; }
+.res-mini-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 18px rgba(8,145,178,.14);
+}
+.rmc-name  { font-size: 12px; font-weight: 700; color: var(--ink); margin-bottom: 2px; }
+.rmc-amphoe{ font-size: 10px; color: var(--muted); margin-bottom: 8px; }
+.rmc-bar-wrap {
+  height: 7px; background: #e2e8f0; border-radius: 4px; overflow: hidden; margin-bottom: 6px;
+}
+.rmc-bar { height: 100%; border-radius: 4px; transition: width 1s ease; }
+.res-mini-card.res-full .rmc-bar   { background: #2563eb; }
+.res-mini-card.res-normal .rmc-bar { background: #0d9488; }
+.res-mini-card.res-warn .rmc-bar   { background: #f59e0b; }
+.res-mini-card.res-crit .rmc-bar   { background: #dc2626; }
+.rmc-bottom { display: flex; justify-content: space-between; align-items: center; }
+.rmc-pct  { font-size: 16px; font-weight: 800; color: var(--brand); }
+.rmc-vol  { font-size: 10px; color: var(--muted); }
+
+.res-total-bar {
+  background: var(--card); border-radius: 14px; padding: 16px 20px;
+  border: 1px solid #cffafe; margin-bottom: 14px;
+  display: flex; align-items: center; gap: 20px; flex-wrap: wrap;
+}
+.rtb-label { font-size: 13px; font-weight: 600; color: var(--muted); white-space: nowrap; }
+.rtb-bar-outer {
+  flex: 1; min-width: 200px; height: 16px; background: #e2e8f0;
+  border-radius: 8px; overflow: hidden;
+}
+.rtb-bar-fill {
+  height: 100%; border-radius: 8px;
+  background: linear-gradient(90deg, #0d9488, #0891b2);
+  transition: width 1.2s ease;
+}
+.rtb-nums { font-size: 13px; font-weight: 700; white-space: nowrap; }
+.rtb-nums span { color: #0891b2; font-size: 18px; font-weight: 800; }
+
+/* Quick input inline */
+.res-quick-input {
+  background: var(--card); border-radius: 12px;
+  border: 1px solid #cffafe; padding: 16px 20px;
+  display: flex; align-items: flex-end; gap: 12px; flex-wrap: wrap;
+}
+.rqi-title {
+  font-size: 13px; font-weight: 700; color: var(--brand);
+  margin-bottom: 12px; width: 100%;
+}
+.rqi-group { display: flex; flex-direction: column; gap: 4px; }
+.rqi-group label { font-size: 10px; font-weight: 600; color: var(--muted); }
+.rqi-group select,
+.rqi-group input {
+  padding: 8px 10px; border: 1.5px solid #cffafe; border-radius: 8px;
+  font-family: 'Sarabun', sans-serif; font-size: 12px; color: var(--ink);
+  background: #f0fdfa; outline: none; transition: border-color .2s;
+}
+.rqi-group select:focus,
+.rqi-group input:focus { border-color: #0891b2; }
+.rqi-group select { min-width: 200px; }
+.rqi-group input  { width: 130px; }
+.btn-rqi-save {
+  padding: 9px 20px;
+  background: linear-gradient(135deg, #0891b2, #0e7490);
+  color: #fff; border: none; border-radius: 9px;
+  font-family: 'Sarabun', sans-serif; font-size: 12px; font-weight: 700;
+  cursor: pointer; transition: all .2s; align-self: flex-end; margin-bottom: 0;
+  box-shadow: 0 3px 10px rgba(8,145,178,.3);
+}
+.btn-rqi-save:hover { transform: translateY(-1px); }
+.btn-rqi-link {
+  padding: 9px 16px;
+  background: transparent; border: 1.5px solid #0891b2;
+  color: #0891b2; border-radius: 9px;
+  font-family: 'Sarabun', sans-serif; font-size: 12px; font-weight: 700;
+  cursor: pointer; text-decoration: none;
+  display: inline-flex; align-items: center; gap: 5px;
+  transition: all .2s; align-self: flex-end;
+}
+.btn-rqi-link:hover { background: #f0fdfa; }
+.rqi-status {
+  font-size: 11px; font-weight: 600; padding: 6px 12px; border-radius: 7px;
+  align-self: flex-end; display: none;
+}
+.rqi-status.ok  { background: #dcfce7; color: #15803d; display: inline-flex; }
+.rqi-status.err { background: #fee2e2; color: #b91c1c; display: inline-flex; }
 </style>
 </head>
 <body>
@@ -296,42 +411,50 @@
 
     <!-- TAB: RESERVOIR -->
     <div class="form-panel" id="tab-res" style="display:none;">
-      <div class="status-banner" id="resBanner"></div>
-
-      <div class="form-row">
-        <div class="field">
-          <label>วันที่ <span style="color:#dc2626;">*</span></label>
-          <input type="date" id="reDate">
+      <div class="reservoir-section" id="reservoirSection">
+        <div class="section-title">🏞️ สถานการณ์อ่างเก็บน้ำ 14 แห่ง — โครงการชลประทานหนองบัวลำภู</div>
+      
+        <!-- Total bar -->
+        <div class="res-total-bar">
+          <div class="rtb-label">ภาพรวมทั้งจังหวัด</div>
+          <div class="rtb-bar-outer">
+            <div class="rtb-bar-fill" id="totalResBar" style="width:0%"></div>
+          </div>
+          <div class="rtb-nums">
+            <span id="totalResPct">—</span>%
+            &nbsp;·&nbsp; <span id="totalResVol">—</span> / 31.50 ล้าน ลบ.ม.
+          </div>
+          <a href="reservoir.html" style="font-size:12px;color:#0891b2;font-weight:600;text-decoration:none;white-space:nowrap;">ดูทั้งหมด →</a>
         </div>
-        <div class="field">
-          <label>ชื่ออ่างเก็บน้ำ <span style="color:#dc2626;">*</span></label>
-          <select id="reName">
-            <option value="">-- เลือกอ่างเก็บน้ำ --</option>
-            <option>อ่างเก็บน้ำห้วยน้ำบอง</option>
-            <option>อ่างเก็บน้ำห้วยทราย</option>
-            <option>อ่างเก็บน้ำห้วยขุนชาติ</option>
-            <option>อ่างเก็บน้ำห้วยหินลาด</option>
-            <option>อ่างเก็บน้ำห้วยตูม</option>
-            <option>อ่างเก็บน้ำห้วยนา</option>
-          </select>
+      
+        <!-- Mini cards grid -->
+        <div class="res-summary-grid" id="resMiniCards">
+          <!-- generated by JS -->
         </div>
-        <div class="field">
-          <label>ผู้บันทึก <span style="color:#dc2626;">*</span></label>
-          <input type="text" id="reReporter" placeholder="ชื่อ-นามสกุล">
+      
+        <!-- Quick input form -->
+        <div class="res-quick-input">
+          <div class="rqi-title">📝 บันทึกปริมาณน้ำในอ่าง (ด่วน)</div>
+          <div class="rqi-group">
+            <label>วันที่</label>
+            <input type="date" id="rqiDate"/>
+          </div>
+          <div class="rqi-group">
+            <label>อ่างเก็บน้ำ</label>
+            <select id="rqiReservoir">
+              <option value="">— เลือก —</option>
+            </select>
+          </div>
+          <div class="rqi-group">
+            <label>ปริมาณน้ำ (ล้าน ลบ.ม.)</label>
+            <input type="number" id="rqiVolume" step="0.001" min="0" placeholder="0.000"/>
+          </div>
+          <button class="btn-rqi-save" onclick="rqiSave()">💾 บันทึก</button>
+          <a href="reservoir.html" class="btn-rqi-link">🏞️ ดูแดชบอร์ดอ่างเก็บน้ำ</a>
+          <div class="rqi-status" id="rqiStatus"></div>
         </div>
       </div>
-
-      <div class="form-row">
-        <div class="field">
-          <label>ปริมาณน้ำปัจจุบัน (ล้าน ลบ.ม.) <span style="color:#dc2626;">*</span></label>
-          <input type="number" id="reCurrent" step="0.01" placeholder="เช่น 12.4">
-        </div>
-      </div>
-
-      <div class="actions">
-        <button class="btn btn-secondary" onclick="resetRes()">🗑️ ล้างฟอร์ม</button>
-        <button class="btn btn-success" onclick="submitRes()">💾 บันทึกข้อมูล</button>
-      </div>
+    
     </div>
 
     <!-- TAB: DAILY REPORT (รายงานประจำวันรวมทุกหมวด) -->
@@ -827,6 +950,144 @@ async function loadHistory(){
     </tr>`;
   }).join("");
 }
+
+
+/* Reservoir section injected from snippet */
+/* =========================================================
+ *  Reservoir section สำหรับ index.html
+ *  วาง constant API_URL ไว้แล้วที่ด้านบนของ script เดิม
+ * ========================================================= */
+
+const RES_MASTER_INDEX = [
+  {id:"R01",no:1, name:"ห้วยยางเงาะ",      amphoe:"เมือง", capacity:0.400},
+  {id:"R02",no:2, name:"ห้วยซับม่วง",       amphoe:"ศรีบุญเรือง",capacity:0.750},
+  {id:"R03",no:3, name:"ห้วยเหล่ายาง",      amphoe:"เมือง", capacity:2.469},
+  {id:"R04",no:4, name:"อ่างน้ำบอง",        amphoe:"โนนสัง",capacity:20.800},
+  {id:"R05",no:5, name:"ห้วยสนามชัย",       amphoe:"นากลาง",capacity:0.330},
+  {id:"R06",no:6, name:"ผาวัง",             amphoe:"นาวัง",  capacity:2.122},
+  {id:"R07",no:7, name:"ห้วยลาดกั่ว",       amphoe:"นาวัง",  capacity:0.842},
+  {id:"R08",no:8, name:"ห้วยโซ่",           amphoe:"สุวรรณคูหา",capacity:1.430},
+  {id:"R09",no:9, name:"ห้วยไร่ 1",         amphoe:"นากลาง",capacity:0.200},
+  {id:"R10",no:10,name:"ห้วยไร่ 2",         amphoe:"นากลาง",capacity:0.695},
+  {id:"R11",no:11,name:"ห้วยลำใย",          amphoe:"นากลาง",capacity:0.450},
+  {id:"R12",no:12,name:"ห้วยโป่งซาง",       amphoe:"นากลาง",capacity:0.300},
+  {id:"R13",no:13,name:"ห้วยบ้านคลองเจริญ", amphoe:"สุวรรณคูหา",capacity:0.623},
+  {id:"R14",no:14,name:"ผาจ้ำน้ำ",          amphoe:"นาวัง",  capacity:0.085},
+];
+const RES_TOTAL_CAP = 31.496;
+
+let resIndexData = {};
+
+function resIndexInitDemo() {
+  const demos = [0.72,0.60,0.55,0.48,0.68,0.82,0.73,0.65,0.50,0.70,0.55,0.62,0.78,0.44];
+  RES_MASTER_INDEX.forEach((r,i) => {
+    resIndexData[r.id] = { current: +(r.capacity * demos[i]).toFixed(3) };
+  });
+}
+
+function resIndexStatus(r) {
+  const p = resIndexPct(r);
+  return p >= 80 ? "res-full" : p >= 40 ? "res-normal" : p >= 20 ? "res-warn" : "res-crit";
+}
+function resIndexPct(r) {
+  const c = resIndexData[r.id]?.current ?? r.capacity * 0.6;
+  return Math.round((c / r.capacity) * 100);
+}
+
+function renderReservoirSection() {
+  // Total bar
+  let totalVol = 0;
+  RES_MASTER_INDEX.forEach(r => { totalVol += resIndexData[r.id]?.current ?? r.capacity*0.6; });
+  const avgPct = Math.round((totalVol / RES_TOTAL_CAP) * 100);
+  document.getElementById("totalResBar").style.width  = Math.min(avgPct, 100) + "%";
+  document.getElementById("totalResPct").textContent  = avgPct;
+  document.getElementById("totalResVol").textContent  = totalVol.toFixed(2);
+
+  // Mini cards
+  document.getElementById("resMiniCards").innerHTML = RES_MASTER_INDEX.map(r => {
+    const p  = resIndexPct(r);
+    const st = resIndexStatus(r);
+    const cur = (resIndexData[r.id]?.current ?? r.capacity*0.6).toFixed(3);
+    const nm = r.name.length > 9 ? r.name.slice(0,8)+"…" : r.name;
+    return `
+      <div class="res-mini-card ${st}" onclick="window.location.href='reservoir.html'">
+        <div class="rmc-name">${r.name}</div>
+        <div class="rmc-amphoe">อ.${r.amphoe} · R${String(r.no).padStart(2,"0")}</div>
+        <div class="rmc-bar-wrap"><div class="rmc-bar" style="width:${Math.min(p,100)}%;"></div></div>
+        <div class="rmc-bottom">
+          <div class="rmc-pct">${p}%</div>
+          <div class="rmc-vol">${cur} / ${r.capacity.toFixed(3)}</div>
+        </div>
+      </div>`;
+  }).join("");
+
+  // Populate dropdown
+  const sel = document.getElementById("rqiReservoir");
+  if (sel.options.length <= 1) {
+    RES_MASTER_INDEX.forEach(r => {
+      const opt = document.createElement("option");
+      opt.value = r.id;
+      opt.textContent = `R${String(r.no).padStart(2,"0")} · ${r.name} (${r.capacity.toFixed(3)} Mm³)`;
+      sel.appendChild(opt);
+    });
+  }
+  // Set date
+  const di = document.getElementById("rqiDate");
+  if (!di.value) di.value = new Date().toISOString().slice(0,10);
+}
+
+async function rqiSave() {
+  const st = document.getElementById("rqiStatus");
+  const rid    = document.getElementById("rqiReservoir").value;
+  const date   = document.getElementById("rqiDate").value;
+  const vol    = document.getElementById("rqiVolume").value;
+  if (!rid || !date || !vol) { st.className="rqi-status err"; st.textContent="กรุณากรอกข้อมูลให้ครบ"; return; }
+
+  const r = RES_MASTER_INDEX.find(x => x.id === rid);
+  resIndexData[rid] = { current: parseFloat(vol) };
+  renderReservoirSection();
+
+  if (!API_URL) {
+    st.className = "rqi-status ok";
+    st.textContent = `✅ ${r.name} ${parseFloat(vol).toFixed(3)} ล้าน ลบ.ม. (demo)`;
+    setTimeout(()=>{ st.className="rqi-status"; }, 4000);
+    return;
+  }
+  try {
+    const res = await fetch(API_URL, {
+      method: "POST", headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({ action:"savereservoir", reservoir_id:rid, reservoir_name:r.name, amphoe:r.amphoe, date, current_volume:parseFloat(vol), capacity:r.capacity })
+    });
+    const data = await res.json();
+    st.className = data.ok ? "rqi-status ok" : "rqi-status err";
+    st.textContent = data.ok ? `✅ ${data.message}` : `❌ ${data.error}`;
+  } catch(e) {
+    st.className = "rqi-status err";
+    st.textContent = "❌ เชื่อมต่อ API ไม่ได้";
+  }
+  setTimeout(()=>{ st.className="rqi-status"; }, 5000);
+}
+
+// โหลดข้อมูลจาก API แล้วเรนเดอร์
+async function loadReservoirIndex() {
+  if (API_URL) {
+    try {
+      const res  = await fetch(API_URL + "?action=reservoir");
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        data.forEach(item => {
+          if (item.reservoir_id && item.current_volume != null) {
+            resIndexData[item.reservoir_id] = { current: parseFloat(item.current_volume) };
+          }
+        });
+      }
+    } catch(e) {}
+  }
+  renderReservoirSection();
+}
+
+resIndexInitDemo();
+loadReservoirIndex();
 </script>
 </body>
 </html>
