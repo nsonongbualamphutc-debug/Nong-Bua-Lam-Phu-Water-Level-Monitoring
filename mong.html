@@ -7,6 +7,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&family=Kanit:wght@400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="config.js"></script>
 <style>
 :root {
   --bg: #f0faf4;
@@ -513,7 +514,7 @@ footer strong { color: #fff; }
 /* =============================================================
  *  DATA
  * ============================================================= */
-const API_URL = ""; // ใส่ Google Apps Script URL
+const API_URL = window.APP_CONFIG?.API_URL || ""; // ตั้งค่าใน config.js
 
 const STATIONS = [
   {id:"MG01", no:1, name:"คลองบุญทัน",  village:"บ้านบุญทัน",  amphoe:"สุวรรณคูหา", bank:231.0, warn:230.5, crit:231.0},

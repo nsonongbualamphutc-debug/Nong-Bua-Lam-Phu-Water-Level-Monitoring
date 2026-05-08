@@ -6,6 +6,7 @@
 <title>บันทึกข้อมูลระดับน้ำ | สำนักงานสถิติจังหวัดหนองบัวลำภู</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="config.js"></script>
 <style>
 :root{
   --bg:#f0f6ff;--card:#fff;--ink:#0f172a;--muted:#64748b;--line:#e2e8f0;
@@ -410,29 +411,30 @@ footer strong{color:#fff;}
 /* ============================================================
  *  CONFIG — เปลี่ยน API_URL เป็น Web App URL ของ Apps Script
  * ============================================================ */
-const API_URL   = "";        // ตัวอย่าง: "https://script.google.com/macros/s/xxx/exec"
-const VALID_PIN = "123456";  // PIN ชั่วคราว — เปลี่ยนได้ใน Code.gs ภายหลัง
+const API_URL   = window.APP_CONFIG?.API_URL || ""; // ตั้งค่าใน config.js
 
 /* ============================================================
  *  PIN
  * ============================================================ */
 function doPin() {
-  const v = document.getElementById("pinInp").value;
-  if (v === VALID_PIN) {
-    document.getElementById("pinScreen").style.display = "none";
-    document.getElementById("mainContent").classList.add("open");
-    document.getElementById("btnOut").style.display = "inline-block";
-    sessionStorage.setItem("wat_ok","1");
-    initAll();
-  } else {
+  const v = document.getElementById("pinInp").value.trim();
+  if (!v) {
     const e = document.getElementById("pinErr");
-    e.textContent = "รหัส PIN ไม่ถูกต้อง";
+    e.textContent = "กรุณาใส่รหัส PIN";
     document.getElementById("pinInp").value = "";
     setTimeout(() => { e.textContent = ""; }, 3000);
+    return;
   }
+  document.getElementById("pinScreen").style.display = "none";
+  document.getElementById("mainContent").classList.add("open");
+  document.getElementById("btnOut").style.display = "inline-block";
+  sessionStorage.setItem("wat_ok","1");
+  sessionStorage.setItem("wat_pin",v);
+  initAll();
 }
 function doLogout() {
   sessionStorage.removeItem("wat_ok");
+  sessionStorage.removeItem("wat_pin");
   document.getElementById("mainContent").classList.remove("open");
   document.getElementById("btnOut").style.display = "none";
   document.getElementById("pinScreen").style.display = "flex";
@@ -600,6 +602,10 @@ function clrHist(){if(!confirm("ล้างประวัติ?"))return;LOG.
  * ============================================================ */
 async function api(p){
   if(!API_URL)return{ok:true,demo:true,message:"demo"};
+  const action = String(p.action || "").toLowerCase();
+  if(["savewater","saverain","savereservoir","savedailyreport"].includes(action)){
+    p.pin = sessionStorage.getItem("wat_pin") || "";
+  }
   const r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(p)});
   return await r.json();
 }

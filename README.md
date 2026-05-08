@@ -8,7 +8,7 @@
 
 | ไฟล์ | คำอธิบาย |
 |---|---|
-| `water_dashboard.html` | แดชบอร์ดหน้าหลัก (single-file HTML) |
+| `index.html` | แดชบอร์ดหน้าหลัก |
 | `Code.gs` | Backend ของ Google Apps Script |
 | `README.md` | คู่มือนี้ |
 
@@ -34,10 +34,14 @@
 5. กลับไปที่ Sheet — จะมี 5 ชีต: `Stations`, `Current`, `History`, `Audit`, `RateLimit`
 
 ### 4️⃣ จัดการ PIN
-1. ในชีต **Stations** → คอลัมน์ `pinPlain` (ตัวสุดท้าย พื้นหลังสีแดง)
-2. **คัดลอก PIN ของแต่ละสถานีไปจดบันทึกแยก** (เช่นสมุดของผู้ดูแล)
-3. **ลบเนื้อหาคอลัมน์ `pinPlain`** ทิ้ง — ระบบใช้แค่ `pinHash` (SHA-256) ในการตรวจสอบ
-4. ห้ามลบคอลัมน์ pinPlain ทั้งคอลัมน์ ลบแค่ค่าในแต่ละแถวพอ
+1. เปิด Apps Script → **Project Settings**
+2. เลื่อนลงไปที่ **Script properties** → **Add script property**
+3. ตั้งค่า:
+   - Property: `APP_PIN`
+   - Value: PIN ที่จะใช้สำหรับบันทึกข้อมูล
+4. กด **Save**
+
+> หน้า `input.html` จะไม่เก็บ PIN จริงไว้ในไฟล์แล้ว ระบบจะส่ง PIN ที่ผู้ใช้กรอกไปให้ `Code.gs` ตรวจตอนบันทึกข้อมูล
 
 ### 5️⃣ Deploy เป็น Web App
 1. ใน Apps Script → กด **Deploy → New deployment**
@@ -50,18 +54,20 @@
 5. **คัดลอก URL** ที่ขึ้นมา (รูปแบบ: `https://script.google.com/macros/s/AKfycby.../exec`)
 
 ### 6️⃣ ใส่ URL ลงใน Dashboard
-1. เปิดไฟล์ `water_dashboard.html` ด้วย Notepad / VS Code
-2. ค้นหา (Ctrl+F): `PASTE_YOUR_GOOGLE_APPS_SCRIPT_URL_HERE`
+1. เปิดไฟล์ `config.js` ด้วย Notepad / VS Code
+2. ค้นหา (Ctrl+F): `API_URL`
 3. แทนที่ด้วย URL ที่ได้จากขั้นตอน 5
 4. บันทึกไฟล์
 
 ```javascript
 // บรรทัดที่ต้องแก้
-const GAS_URL = 'https://script.google.com/macros/s/AKfycby.../exec';
+window.APP_CONFIG = {
+  API_URL: 'https://script.google.com/macros/s/AKfycby.../exec'
+};
 ```
 
 ### 7️⃣ Deploy ขึ้น GitHub Pages
-1. Push ไฟล์ `water_dashboard.html` ขึ้น GitHub repository
+1. Push ไฟล์ทั้งหมดขึ้น GitHub repository โดยให้ `index.html` อยู่ที่ root
 2. Settings → Pages → Source: `main` branch / root
 3. รอ 1-2 นาที จะได้ URL `https://onoshung.github.io/<repo>/`
 
@@ -194,7 +200,7 @@ const GAS_URL = 'https://script.google.com/macros/s/AKfycby.../exec';
 ### วิธีตั้งค่า
 1. สมัคร API key ฟรีที่ [https://data.tmd.go.th/](https://data.tmd.go.th/)
 2. คัดลอก API token
-3. แก้ไข `water_dashboard.html` หาบรรทัด:
+3. แก้ไข `config.js` หาบรรทัด:
    ```js
    const TMD_API_KEY = ''; // ใส่ API key ที่นี่
    ```
@@ -486,7 +492,7 @@ LINE Notify จะถูก deprecate — รองรับ Telegram Bot เป
 | ปัญหา | สาเหตุ | วิธีแก้ |
 |---|---|---|
 | หน้าเว็บโหลดช้ามาก | API หลายตัวยิงพร้อมกัน | ปกติ — รอ 5-10 วิรอบแรก รอบหลังเร็วขึ้น (cache) |
-| "ใช้ข้อมูลตั้งต้น" | ยังไม่ได้ใส่ GAS_URL | ตรวจสอบขั้นตอน 6 |
+| "ใช้ข้อมูลตั้งต้น" | ยังไม่ได้ใส่ `API_URL` | ตรวจสอบขั้นตอน 6 |
 | "PIN ไม่ถูกต้อง" | PIN hash ไม่ตรง | ตรวจ PIN ใน Stations คอลัมน์ pinPlain → รัน `rehashAllPins()` |
 | GPS ไม่ทำงาน | ต้องเปิด HTTPS | GitHub Pages ใช้ HTTPS อัตโนมัติ + อนุญาต location ในเบราว์เซอร์ |
 | LINE ไม่ส่ง | Token ไม่ได้ตั้ง | ตรวจ Script Properties → key=`LINE_TOKEN` |

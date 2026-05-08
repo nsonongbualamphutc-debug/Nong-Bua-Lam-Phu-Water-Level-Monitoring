@@ -8,6 +8,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="config.js"></script>
 <style>
 :root{--bg:#f4f7fb;--card:#fff;--ink:#0f172a;--muted:#64748b;--line:#e2e8f0;--brand:#0c4a6e;--brand2:#0284c7;--info:#0ea5e9;--warn:#f59e0b;--crit:#dc2626;--shadow:0 1px 2px rgba(15,23,42,.04),0 4px 16px rgba(15,23,42,.06);}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -100,7 +101,7 @@ footer{background:#0f172a;color:#94a3b8;text-align:center;padding:18px;font-size
 </main>
 <footer>ระบบติดตามสถานการณ์น้ำจังหวัดหนองบัวลำภู</footer>
 <script>
-const API_URL = "";
+const API_URL = window.APP_CONFIG?.API_URL || "";
 const DEMO_RAIN = [
   {amphoe:"เมืองหนองบัวลำภู", rain_24hr:18.2, rain_7day:64.8, rain_month:142.5},
   {amphoe:"นากลาง", rain_24hr:42.6, rain_7day:91.4, rain_month:188.7},

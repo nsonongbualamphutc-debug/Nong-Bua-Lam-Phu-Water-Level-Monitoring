@@ -14,6 +14,7 @@
 <script src="https://unpkg.com/leaflet.heat@0.2.0/dist/leaflet-heat.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+<script src="config.js"></script>
 <script src="waterways-loader.js"></script>
 <script src="map-layers.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -1806,7 +1807,7 @@
  *  เปลี่ยน API_URL เป็น Google Apps Script Web App URL ของคุณ
  *  ถ้ายังไม่มีจะใช้ข้อมูลตัวอย่าง (DEMO_DATA)
  * ================================================================= */
-const API_URL = ""; // เช่น "https://script.google.com/macros/s/AKfyc.../exec"
+  const API_URL = window.APP_CONFIG?.API_URL || ""; // ตั้งค่าใน config.js
 
 /* ====== DEMO DATA (จะถูกใช้เมื่อยังไม่ได้ตั้งค่า API_URL) ====== */
 const DEMO_STATIONS = [

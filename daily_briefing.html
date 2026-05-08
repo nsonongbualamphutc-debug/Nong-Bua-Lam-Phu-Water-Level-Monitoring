@@ -8,6 +8,7 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="config.js"></script>
 <script src="waterways-loader.js"></script>
 <script src="icons.js"></script>
 <style>
@@ -583,7 +584,7 @@
 </main>
 
 <script>
-const API_URL = "";
+const API_URL = window.APP_CONFIG?.API_URL || "";
 const AMPHOES = ["เมืองหนองบัวลำภู", "นาวัง", "นากลาง", "ศรีบุญเรือง", "สุวรรณคูหา", "โนนสัง"];
 
 // พิกัดศูนย์กลางอำเภอ (สำหรับ marker บนแผนที่)

@@ -3,7 +3,7 @@
  *  ระบบแดชบอร์ดสถานการณ์น้ำจังหวัดหนองบัวลำภู
  *  Google Apps Script Backend — v3 (+ PIN auth)
  * ============================================================
- *  PIN: เปลี่ยนที่ VALID_PIN ด้านล่าง
+ *  PIN: ตั้งค่า APP_PIN ใน Script Properties
  * ============================================================ */
 
 // ===== CONFIG =====
@@ -14,7 +14,7 @@ const SHEET_RESERVOIR = "Reservoir";
 const SHEET_SETTINGS  = "Settings";
 
 // ===== PIN =====
-const VALID_PIN    = "123456";  // << เปลี่ยนรหัสตรงนี้
+const PIN_PROPERTY_KEY = "APP_PIN";
 const PIN_REQUIRED = true;       // false = ปิด PIN ระหว่าง dev
 
 const RESERVOIR_HEADERS = [
@@ -32,6 +32,8 @@ function doGet(e) {
   try {
     switch (action) {
       case "summary":     data = getSummary(); break;
+      case "paneang":     data = getRiverDashboard("paneang"); break;
+      case "mong":        data = getRiverDashboard("mong"); break;
       case "stations":    data = getStations(params.river); break;
       case "water":       data = getWaterLevels(params.station_id, parseInt(params.days||"7")); break;
       case "rain":        data = getRainfall(parseInt(params.days||"7")); break;
@@ -57,8 +59,12 @@ function doPost(e) {
 
   // PIN CHECK สำหรับ action เขียนข้อมูล
   if (PIN_REQUIRED && WRITE_ACTIONS.indexOf(action) !== -1) {
+    const expectedPin = getAppPin();
+    if (!expectedPin) {
+      return respond({ ok:false, error:"ยังไม่ได้ตั้งค่า APP_PIN ใน Script Properties", code:"PIN_NOT_CONFIGURED" });
+    }
     const pin = String(payload.pin || "").trim();
-    if (pin !== VALID_PIN) {
+    if (pin !== expectedPin) {
       return respond({ ok:false, error:"PIN ไม่ถูกต้อง", code:"INVALID_PIN" });
     }
   }
@@ -103,6 +109,50 @@ function getSummary() {
   let avgRain=0;
   if(rain.length>0) avgRain=rain.reduce((a,r)=>a+(parseFloat(r.rain_24hr)||0),0)/rain.length;
   return {total:stations.length,normal,warn,crit,avg_rain_24hr:avgRain,stations:merged,updated:new Date().toISOString()};
+}
+
+function getRiverDashboard(riverKey) {
+  const key = String(riverKey || "").toLowerCase();
+  const stations = getStations().filter(st => {
+    const id = String(st.station_id || "").toUpperCase();
+    const river = String(st.river || "").toLowerCase();
+    if (key === "paneang") return id.indexOf("PN") === 0 || river.indexOf("paneang") !== -1 || river.indexOf("พะเนียง") !== -1;
+    if (key === "mong") return id.indexOf("MG") === 0 || river.indexOf("mong") !== -1 || river.indexOf("โมง") !== -1;
+    return true;
+  });
+  const latest = getLatestWaterByStation();
+  let normal = 0, warn = 0, crit = 0;
+  const merged = stations.map(st => {
+    const w = latest[st.station_id] || {};
+    const level = parseFloat(w.level);
+    const bank = parseFloat(st.bank_level);
+    const warnLevel = parseFloat(st.warn_level);
+    let status = "ปกติ";
+    if (!isNaN(level)) {
+      if (!isNaN(bank) && level >= bank) status = "วิกฤติ";
+      else if (!isNaN(warnLevel) && level >= warnLevel) status = "เฝ้าระวัง";
+    }
+    if (status === "วิกฤติ") crit++;
+    else if (status === "เฝ้าระวัง") warn++;
+    else normal++;
+    return Object.assign({}, st, {
+      id: st.station_id,
+      current: isNaN(level) ? null : level,
+      current_level: isNaN(level) ? null : level,
+      flow: w.flow || null,
+      status: status,
+      last_update: w.date ? (w.date + " " + (w.time || "")) : null
+    });
+  });
+  return {
+    river: key,
+    total: stations.length,
+    normal: normal,
+    warn: warn,
+    crit: crit,
+    stations: merged,
+    updated: new Date().toISOString()
+  };
 }
 
 function getWaterLevels(stationId,days) {
@@ -251,8 +301,10 @@ function getHeaders(sheet){return sheet.getRange(1,1,1,sheet.getLastColumn()).ge
 function sheetToObjects(sheet){if(!sheet)return[];const data=sheet.getDataRange().getValues();if(data.length<2)return[];const headers=data[0];return data.slice(1).map(row=>{const obj={};headers.forEach((h,i)=>{let v=row[i];if(v instanceof Date)v=Utilities.formatDate(v,"Asia/Bangkok","yyyy-MM-dd");obj[h]=v;});return obj;}).filter(o=>Object.values(o).some(v=>v!==""&&v!==null&&v!==undefined));}
 function parseDate(v){if(!v)return null;if(v instanceof Date)return v;const d=new Date(v);return isNaN(d.getTime())?null:d;}
 function respond(data,callback){const json=JSON.stringify(data);if(callback)return ContentService.createTextOutput(callback+"("+json+");").setMimeType(ContentService.MimeType.JAVASCRIPT);return ContentService.createTextOutput(json).setMimeType(ContentService.MimeType.JSON);}
+function getAppPin(){return String(PropertiesService.getScriptProperties().getProperty(PIN_PROPERTY_KEY)||"").trim();}
+function installDefaultPinForSetup(){PropertiesService.getScriptProperties().setProperty(PIN_PROPERTY_KEY,"123456");Logger.log("ตั้งค่า APP_PIN เริ่มต้นแล้ว ควรเปลี่ยนก่อนใช้งานจริง");}
 
 // ===== TEST =====
-function testPin(){Logger.log("PIN test: "+(VALID_PIN==="123456"?"✅ ตรงกัน":"❌ ไม่ตรง"));}
+function testPin(){Logger.log(getAppPin()?"✅ ตั้งค่า APP_PIN แล้ว":"❌ ยังไม่ได้ตั้งค่า APP_PIN");}
 function testGetSummary(){Logger.log(JSON.stringify(getSummary(),null,2));}
 function testGetReservoirs(){Logger.log(JSON.stringify(getReservoirs(),null,2));}
