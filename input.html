@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>บันทึกข้อมูลระดับน้ำ | สำนักงานสถิติจังหวัดหนองบัวลำภู</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="config.js"></script>
+<style>
+:root{
+  --bg:#f0f6ff;--card:#fff;--ink:#0f172a;--muted:#64748b;--line:#e2e8f0;
+  --brand:#0c4a6e;--brand2:#0284c7;--ok:#16a34a;--warn:#f59e0b;--err:#dc2626;
+  --shadow:0 2px 12px rgba(15,23,42,.08);
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+html,body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--ink);min-height:100vh;}
+header{background:linear-gradient(135deg,#0c1e3d 0%,#0c4a6e 55%,#075985 100%);color:#fff;position:sticky;top:0;z-index:1000;box-shadow:0 4px 20px rgba(0,0,0,.25);}
+header::after{content:"";display:block;height:3px;background:linear-gradient(90deg,#0ea5e9,#38bdf8,#0ea5e9);background-size:200% 100%;animation:sh 3s linear infinite;}
+@keyframes sh{to{background-position:-200% 0;}}
+.hdr{max-width:1400px;margin:0 auto;padding:13px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.hdr-brand{display:flex;align-items:center;gap:12px;}
+.hdr-logo{width:44px;height:44px;border-radius:12px;background:rgba(56,189,248,.25);border:1px solid rgba(125,211,252,.4);display:flex;align-items:center;justify-content:center;}
+.hdr-title{font-size:17px;font-weight:800;}
+.hdr-sub{font-size:11px;color:#bae6fd;margin-top:1px;opacity:.85;}
+.hdr-link{color:#bae6fd;text-decoration:none;font-size:12px;font-weight:600;padding:5px 10px;border:1px solid rgba(125,211,252,.25);border-radius:7px;transition:all .15s;}
+.hdr-link:hover{background:rgba(56,189,248,.2);}
+nav{background:#fff;border-bottom:1px solid var(--line);}
+.nav-inner{max-width:1400px;margin:0 auto;display:flex;padding:0 24px;overflow-x:auto;}
+nav a{padding:13px 18px;color:var(--muted);text-decoration:none;font-size:14px;font-weight:500;white-space:nowrap;border-bottom:3px solid transparent;transition:all .2s;}
+nav a:hover{color:var(--brand2);}
+nav a.active{color:var(--brand);border-bottom-color:var(--brand2);font-weight:700;}
+main{max-width:1400px;margin:0 auto;padding:24px;}
+
+/* PIN */
+.pin-screen{position:fixed;inset:0;background:linear-gradient(135deg,#0c1e3d,#0c4a6e);z-index:9000;display:flex;align-items:center;justify-content:center;}
+.pin-box{background:#fff;border-radius:20px;padding:36px 40px;max-width:360px;width:100%;box-shadow:0 24px 64px rgba(0,0,0,.3);text-align:center;}
+.pin-icon{font-size:40px;margin-bottom:12px;}
+.pin-title{font-size:18px;font-weight:800;color:var(--brand);margin-bottom:6px;}
+.pin-sub{font-size:12px;color:var(--muted);margin-bottom:24px;}
+.pin-inp{width:100%;padding:14px;text-align:center;font-size:24px;font-weight:800;letter-spacing:8px;border:2px solid var(--line);border-radius:12px;font-family:monospace;outline:none;transition:border-color .2s;margin-bottom:12px;}
+.pin-inp:focus{border-color:var(--brand2);}
+.pin-err{color:var(--err);font-size:12px;font-weight:600;height:18px;margin-bottom:10px;}
+.pin-btn{width:100%;padding:13px;background:linear-gradient(135deg,#0284c7,#0c4a6e);color:#fff;border:none;border-radius:12px;font-family:'Sarabun',sans-serif;font-size:15px;font-weight:700;cursor:pointer;transition:all .2s;}
+.pin-btn:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(2,132,199,.35);}
+
+/* CONTENT */
+.main-content{display:none;}
+.main-content.open{display:block;}
+
+/* TABS */
+.tabs-wrap{background:#fff;border-radius:14px;border:1px solid var(--line);box-shadow:var(--shadow);overflow:hidden;margin-bottom:20px;}
+.tabs-head{display:flex;border-bottom:1px solid var(--line);overflow-x:auto;}
+.tab-btn{padding:13px 18px;color:var(--muted);font-family:'Sarabun',sans-serif;font-size:13px;font-weight:600;white-space:nowrap;border:none;background:transparent;cursor:pointer;border-bottom:3px solid transparent;transition:all .2s;}
+.tab-btn:hover{color:var(--brand2);background:#f0f9ff;}
+.tab-btn.on{color:var(--brand);border-bottom-color:var(--brand2);background:linear-gradient(180deg,transparent 80%,rgba(2,132,199,.04) 100%);}
+.tab-panel{display:none;padding:22px 24px;}
+.tab-panel.on{display:block;}
+
+/* FORM */
+.fg{display:flex;flex-direction:column;gap:4px;margin-bottom:0;}
+.fg label{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.3px;}
+.req{color:var(--err);}
+.fg input,.fg select,.fg textarea{width:100%;padding:9px 12px;border:1.5px solid var(--line);border-radius:9px;font-family:'Sarabun',sans-serif;font-size:13px;color:var(--ink);background:#fff;outline:none;transition:border-color .2s,box-shadow .2s;}
+.fg input:focus,.fg select:focus,.fg textarea:focus{border-color:var(--brand2);box-shadow:0 0 0 3px rgba(2,132,199,.1);}
+.fg textarea{resize:vertical;min-height:72px;}
+.fgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:16px;}
+.fsec{margin-bottom:20px;}
+.fsec-title{font-size:13px;font-weight:700;color:var(--brand);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--line);}
+.form-actions{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding-top:4px;}
+.btn-primary{padding:10px 24px;background:linear-gradient(135deg,#0284c7,#0c4a6e);color:#fff;border:none;border-radius:10px;font-family:'Sarabun',sans-serif;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 4px 12px rgba(2,132,199,.3);transition:all .2s;}
+.btn-primary:hover{transform:translateY(-1px);}
+.btn-primary:disabled{opacity:.55;cursor:not-allowed;transform:none;}
+.btn-ghost{padding:9px 18px;background:transparent;border:1.5px solid var(--line);border-radius:9px;font-family:'Sarabun',sans-serif;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;transition:all .15s;}
+.btn-ghost:hover{border-color:var(--err);color:var(--err);}
+.btn-logout{padding:7px 16px;background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.3);border-radius:8px;color:var(--err);font-family:'Sarabun',sans-serif;font-size:12px;font-weight:700;cursor:pointer;transition:all .15s;}
+.btn-logout:hover{background:var(--err);color:#fff;}
+.toast{padding:9px 16px;border-radius:9px;font-size:12px;font-weight:700;display:none;align-items:center;gap:6px;}
+.toast.ok{background:#dcfce7;color:#15803d;display:flex;}
+.toast.err{background:#fee2e2;color:#b91c1c;display:flex;}
+
+/* MULTI STATION */
+.ms-table{width:100%;border-collapse:collapse;font-size:13px;margin-bottom:14px;}
+.ms-table th{background:#f8fafc;color:var(--muted);font-size:11px;font-weight:700;padding:9px 12px;border-bottom:1px solid var(--line);text-align:left;}
+.ms-table td{padding:6px 12px;border-bottom:1px solid #f1f5f9;vertical-align:middle;}
+.ms-table .rg td{background:linear-gradient(90deg,#0c1e3d,#0c4a6e);color:#bae6fd;font-size:11px;font-weight:700;padding:6px 14px;letter-spacing:.4px;}
+.ms-inp{width:110px;padding:7px 9px;text-align:right;border:1.5px solid var(--line);border-radius:7px;font-family:'Sarabun',sans-serif;font-size:13px;font-weight:700;outline:none;transition:border-color .2s;}
+.ms-inp:focus{border-color:var(--brand2);}
+.ms-inp.has{border-color:var(--ok);background:#f0fdf4;}
+
+/* RESERVOIR TABLE */
+.ri-meta{background:#f0fdfa;border-radius:12px;padding:14px 16px;margin-bottom:14px;border:1px solid #ccfbf1;}
+.ri-meta-row{display:flex;align-items:flex-end;gap:14px;flex-wrap:wrap;margin-bottom:10px;}
+.ri-mi{display:flex;flex-direction:column;gap:4px;}
+.ri-mi label{font-size:11px;font-weight:700;color:#64748b;letter-spacing:.3px;}
+.ri-di,.ri-ti{padding:8px 12px;border:1.5px solid #a5f3fc;border-radius:8px;font-family:'Sarabun',sans-serif;font-size:13px;color:var(--ink);background:#fff;outline:none;}
+.ri-di{min-width:150px;} .ri-ti{min-width:180px;}
+.ri-di:focus,.ri-ti:focus{border-color:#0891b2;box-shadow:0 0 0 3px rgba(8,145,178,.1);}
+.ri-stat-row{display:flex;gap:10px;margin-left:auto;}
+.ri-sb{background:#fff;border-radius:8px;padding:8px 14px;text-align:center;border:1px solid #ccfbf1;min-width:70px;}
+.ri-sn{font-size:20px;font-weight:800;color:#164e63;line-height:1;}
+.ri-sl{font-size:10px;color:#64748b;margin-top:2px;}
+.ri-po{height:8px;background:#e2e8f0;border-radius:4px;overflow:hidden;margin-bottom:6px;}
+.ri-pi{height:100%;border-radius:4px;background:linear-gradient(90deg,#0d9488,#0891b2);transition:width .4s;}
+.ri-ph{font-size:11px;color:#64748b;}
+.ri-ts{overflow-x:auto;border-radius:10px;border:1px solid #e2e8f0;margin-bottom:14px;}
+.ri-t{width:100%;border-collapse:collapse;font-size:13px;}
+.ri-t th{background:#f0fdfa;color:#64748b;font-size:11px;font-weight:700;padding:9px 12px;border-bottom:1px solid #e2e8f0;text-align:left;text-transform:uppercase;letter-spacing:.3px;}
+.ri-t td{padding:2px 0;border-bottom:1px solid #f8fffe;vertical-align:middle;}
+.ri-t tbody tr:hover{background:#f0fdfa;}
+.ri-t tbody tr.rf{background:#f0fdf4;}
+.ri-t tbody tr.ro{background:#fff7ed;}
+.ri-gr td{background:linear-gradient(90deg,#083344,#155e75) !important;color:#a5f3fc !important;font-size:11px;font-weight:700;padding:5px 14px !important;letter-spacing:.4px;}
+.ri-no{padding:9px 8px 9px 14px;font-size:11px;font-weight:700;color:#94a3b8;}
+.ri-nm{padding:9px 12px;}
+.ri-nm-m{font-size:13px;font-weight:700;color:var(--ink);}
+.ri-nm-s{font-size:10px;color:#94a3b8;margin-top:1px;}
+.ri-cp{padding:9px 12px;text-align:right;font-family:monospace;font-size:13px;font-weight:700;color:#164e63;white-space:nowrap;}
+.ri-cp small{display:block;font-size:9px;color:#94a3b8;font-weight:400;}
+.ri-ip{padding:5px 10px;}
+.ri-vw{display:flex;align-items:center;gap:5px;}
+.ri-vi{width:100px;padding:8px 9px;text-align:right;border:1.5px solid #cbd5e1;border-radius:8px;font-family:'Sarabun',sans-serif;font-size:14px;font-weight:700;color:var(--ink);background:#fff;outline:none;transition:border-color .2s;}
+.ri-vi:focus{border-color:#0891b2;box-shadow:0 0 0 3px rgba(8,145,178,.1);background:#f0fdfa;}
+.ri-vi.rh{border-color:#0d9488;background:#f0fdf4;}
+.ri-vi.rv{border-color:#f59e0b;background:#fff7ed;}
+.ri-vu{font-size:10px;color:#94a3b8;}
+.ri-pp{padding:9px 12px;}
+.ri-pr{display:flex;align-items:center;gap:7px;}
+.ri-bo{width:55px;height:7px;background:#e2e8f0;border-radius:4px;overflow:hidden;flex-shrink:0;}
+.ri-bi{height:100%;border-radius:4px;transition:width .4s,background .3s;background:#e2e8f0;}
+.ri-pl{font-size:13px;font-weight:800;color:#94a3b8;min-width:36px;}
+.ri-sp{padding:9px 12px;}
+.ri-bd{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:12px;font-size:11px;font-weight:700;background:#f1f5f9;color:#94a3b8;}
+.ri-bd.rful{background:#dbeafe;color:#1e40af;}
+.ri-bd.rnor{background:#ccfbf1;color:#0f766e;}
+.ri-bd.rwrn{background:#fef3c7;color:#a16207;}
+.ri-bd.rcrt{background:#fee2e2;color:#b91c1c;}
+
+/* HISTORY */
+.ht-wrap{overflow-x:auto;max-height:360px;overflow-y:auto;}
+.ht{width:100%;border-collapse:collapse;font-size:12px;}
+.ht th{background:#f8fafc;color:var(--muted);font-size:11px;font-weight:700;padding:9px 12px;border-bottom:1px solid var(--line);position:sticky;top:0;}
+.ht td{padding:8px 12px;border-bottom:1px solid #f8fafc;}
+.ht tbody tr:hover{background:#f8fafc;}
+.pill{display:inline-flex;align-items:center;gap:3px;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;}
+.pill.w{background:#e0f2fe;color:#0369a1;}
+.pill.r{background:#f0fdf4;color:#15803d;}
+.pill.res{background:#fef3c7;color:#a16207;}
+.pill.d{background:#f5f3ff;color:#6d28d9;}
+
+::-webkit-scrollbar{width:7px;height:6px;}
+::-webkit-scrollbar-track{background:#f1f5f9;}
+::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:4px;}
+footer{background:#0f172a;color:#94a3b8;padding:20px;text-align:center;font-size:12px;margin-top:10px;}
+footer strong{color:#fff;}
+</style>
+</head>
+<body>
+
+<!-- PIN SCREEN -->
+<div class="pin-screen" id="pinScreen">
+  <div class="pin-box">
+    <div class="pin-icon">🔐</div>
+    <div class="pin-title">ระบบบันทึกข้อมูล</div>
+    <div class="pin-sub">กรุณาใส่รหัส PIN เพื่อเข้าใช้งาน</div>
+    <input class="pin-inp" id="pinInp" type="password" maxlength="8"
+           placeholder="••••••" onkeydown="if(event.key==='Enter')doPin()"/>
+    <div class="pin-err" id="pinErr"></div>
+    <button class="pin-btn" onclick="doPin()">เข้าสู่ระบบ</button>
+  </div>
+</div>
+
+<header>
+  <div class="hdr">
+    <div class="hdr-brand">
+      <div class="hdr-logo">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#7dd3fc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 2v6"/><path d="M12 8c-3 4-6 7-6 11a6 6 0 0 0 12 0c0-4-3-7-6-11z"/>
+        </svg>
+      </div>
+      <div>
+        <div class="hdr-title">📝 ระบบบันทึกข้อมูล</div>
+        <div class="hdr-sub">ระดับน้ำและข้อมูลที่เกี่ยวข้อง</div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <a href="index.html" class="hdr-link">← กลับหน้าหลัก</a>
+      <button class="btn-logout" id="btnOut" onclick="doLogout()" style="display:none">🔓 ออกจากระบบ</button>
+    </div>
+  </div>
+</header>
+
+<nav>
+  <div class="nav-inner">
+    <a href="index.html">🏠 หน้าหลัก</a>
+    <a href="paneang.html">🌊 ลำน้ำพะเนียง</a>
+    <a href="mong.html">🌿 ลำน้ำโมง</a>
+    <a href="rainfall.html">🌧️ ปริมาณฝน</a>
+    <a href="reservoir.html">🏞️ อ่างเก็บน้ำ</a>
+    <a href="input.html" class="active">📝 บันทึกข้อมูล</a>
+  </div>
+</nav>
+
+<main>
+<div class="main-content" id="mainContent">
+  <div class="tabs-wrap">
+    <div class="tabs-head">
+      <button class="tab-btn on"  onclick="goTab('water',this)">💧 ระดับน้ำ</button>
+      <button class="tab-btn"     onclick="goTab('multi',this)">⚡ บันทึกหลายสถานี</button>
+      <button class="tab-btn"     onclick="goTab('rain',this)">🌧️ ปริมาณฝน</button>
+      <button class="tab-btn"     onclick="goTab('res',this)">🏞️ อ่างเก็บน้ำ</button>
+      <button class="tab-btn"     onclick="goTab('daily',this)">📊 รายงานประจำวัน</button>
+      <button class="tab-btn"     onclick="goTab('hist',this)">📜 ประวัติการบันทึก</button>
+    </div>
+
+    <!-- TAB: ระดับน้ำ -->
+    <div class="tab-panel on" id="tab-water">
+      <div class="fgrid">
+        <div class="fg"><label>วันที่ <span class="req">*</span></label><input type="date" id="w-date"/></div>
+        <div class="fg"><label>เวลา <span class="req">*</span></label><input type="time" id="w-time"/></div>
+        <div class="fg">
+          <label>เลือกสถานี <span class="req">*</span></label>
+          <select id="w-st">
+            <option value="">-- เลือกสถานี --</option>
+            <optgroup label="ลำน้ำพะเนียง">
+              <option value="PN01">PN01 · วังปลาป้อม (นาวัง)</option>
+              <option value="PN02">PN02 · โคกกระทอ (นาวัง)</option>
+              <option value="PN03">PN03 · วังสามหาบ (นาวัง)</option>
+              <option value="PN04">PN04 · บ้านหนองด่าน (นากลาง)</option>
+              <option value="PN05">PN05 · บ้านฝั่งแดง (นากลาง)</option>
+              <option value="PN06">PN06 · ปตร.หนองหว้าใหญ่ (เมือง)</option>
+              <option value="PN07">PN07 · วังหมื่น (เมือง)</option>
+              <option value="PN08">PN08 · ปตร.ปู่หลอด (เมือง)</option>
+              <option value="PN09">PN09 · บ้านข้องโป้ (เมือง)</option>
+              <option value="PN10">PN10 · ปตร.หัวนา (เมือง)</option>
+            </optgroup>
+            <optgroup label="ลำน้ำโมง">
+              <option value="MG01">MG01 · คลองบุญทัน (สุวรรณคูหา)</option>
+              <option value="MG02">MG02 · บ้านโคก (สุวรรณคูหา)</option>
+            </optgroup>
+          </select>
+        </div>
+        <div class="fg"><label>ระดับน้ำ (ม.รทก.) <span class="req">*</span></label><input type="number" id="w-lv" step="0.01" placeholder="215.30"/></div>
+        <div class="fg"><label>ปริมาณน้ำไหลผ่าน (ลบ.ม./วิ)</label><input type="number" id="w-fl" step="0.01" placeholder="ถ้ามี"/></div>
+        <div class="fg"><label>ผู้บันทึก <span class="req">*</span></label><input type="text" id="w-rc" placeholder="ชื่อ-สกุล"/></div>
+      </div>
+      <div class="fg" style="margin-bottom:16px;"><label>หมายเหตุ</label><textarea id="w-nt" rows="2" placeholder="ข้อมูลเพิ่มเติม"></textarea></div>
+      <div class="form-actions">
+        <button class="btn-ghost" onclick="clearW()">🗑️ ล้างฟอร์ม</button>
+        <div class="toast" id="wt"></div>
+        <button class="btn-primary" id="wbtn" onclick="saveW()">💾 บันทึกข้อมูล</button>
+      </div>
+    </div>
+
+    <!-- TAB: หลายสถานี -->
+    <div class="tab-panel" id="tab-multi">
+      <p style="font-size:13px;color:var(--muted);margin-bottom:14px;">เหมาะสำหรับบันทึกตอนเช้า ใส่ระดับน้ำทุกสถานีแล้วบันทึกทีเดียว</p>
+      <div class="fgrid" style="margin-bottom:14px;">
+        <div class="fg"><label>วันที่ <span class="req">*</span></label><input type="date" id="ms-d"/></div>
+        <div class="fg"><label>เวลา <span class="req">*</span></label><input type="time" id="ms-t"/></div>
+        <div class="fg"><label>ผู้บันทึก <span class="req">*</span></label><input type="text" id="ms-rc" placeholder="ชื่อ-สกุล"/></div>
+      </div>
+      <div style="overflow-x:auto;">
+        <table class="ms-table"><thead><tr>
+          <th style="width:50px">#</th><th>ชื่อสถานี</th><th>อำเภอ</th>
+          <th style="text-align:right">ตลิ่ง (ม.)</th>
+          <th style="width:140px">ระดับน้ำ (ม.รทก.) ↓</th>
+        </tr></thead><tbody id="ms-body"></tbody></table>
+      </div>
+      <div class="form-actions">
+        <button class="btn-ghost" onclick="msClear()">🗑️ ล้างทั้งหมด</button>
+        <div class="toast" id="mst"></div>
+        <button class="btn-primary" id="msbtn" onclick="saveMs()">💾 บันทึกทั้งหมด</button>
+      </div>
+    </div>
+
+    <!-- TAB: ฝน -->
+    <div class="tab-panel" id="tab-rain">
+      <div class="fgrid">
+        <div class="fg"><label>วันที่ <span class="req">*</span></label><input type="date" id="r-d"/></div>
+        <div class="fg"><label>อำเภอ <span class="req">*</span></label>
+          <select id="r-am"><option value="">-- เลือกอำเภอ --</option>
+            <option>เมืองหนองบัวลำภู</option><option>นากลาง</option><option>นาวัง</option>
+            <option>โนนสัง</option><option>ศรีบุญเรือง</option><option>สุวรรณคูหา</option>
+          </select>
+        </div>
+        <div class="fg"><label>ผู้บันทึก <span class="req">*</span></label><input type="text" id="r-rc" placeholder="ชื่อ-สกุล"/></div>
+        <div class="fg"><label>ปริมาณฝน 24 ชม. (มม.) <span class="req">*</span></label><input type="number" id="r-24" step="0.1" placeholder="0.0"/></div>
+        <div class="fg"><label>ฝนสะสม 7 วัน (มม.)</label><input type="number" id="r-7" step="0.1" placeholder="ถ้ามี"/></div>
+        <div class="fg"><label>ฝนสะสมเดือน (มม.)</label><input type="number" id="r-mo" step="0.1" placeholder="ถ้ามี"/></div>
+      </div>
+      <div class="form-actions">
+        <button class="btn-ghost" onclick="clearR()">🗑️ ล้างฟอร์ม</button>
+        <div class="toast" id="rt"></div>
+        <button class="btn-primary" id="rbtn" onclick="saveR()">💾 บันทึกข้อมูลฝน</button>
+      </div>
+    </div>
+
+    <!-- TAB: อ่างเก็บน้ำ (ใหม่ — 14 อ่างจากชลประทาน) -->
+    <div class="tab-panel" id="tab-res">
+      <div class="ri-meta">
+        <div class="ri-meta-row">
+          <div class="ri-mi"><label>วันที่สำรวจ <span class="req">*</span></label><input type="date" id="riD" class="ri-di"/></div>
+          <div class="ri-mi"><label>ผู้บันทึก <span class="req">*</span></label><input type="text" id="riRc" class="ri-ti" placeholder="ชื่อ-สกุล"/></div>
+          <div class="ri-stat-row">
+            <div class="ri-sb"><div class="ri-sn" id="riCnt">0</div><div class="ri-sl">จาก 14 อ่าง</div></div>
+            <div class="ri-sb"><div class="ri-sn" id="riAvg">—</div><div class="ri-sl">% เฉลี่ย</div></div>
+          </div>
+        </div>
+        <div class="ri-po"><div class="ri-pi" id="riProg" style="width:0%"></div></div>
+        <div class="ri-ph">กรอกช่อง <strong style="color:#0891b2">ปริมาณน้ำ (Mm³)</strong> — ระบบคำนวณ % อัตโนมัติ · กด Enter ข้ามแถวถัดไป</div>
+      </div>
+      <div class="ri-ts">
+        <table class="ri-t"><thead><tr>
+          <th style="width:44px">#</th><th>ชื่ออ่างเก็บน้ำ</th>
+          <th style="text-align:right">ความจุ (Mm³)</th>
+          <th style="width:160px">ปริมาณน้ำ (Mm³) ↓</th>
+          <th style="width:120px">% เก็บกัก</th>
+          <th style="width:90px">สถานะ</th>
+        </tr></thead><tbody id="riBody"></tbody></table>
+      </div>
+      <div class="form-actions">
+        <button class="btn-ghost" onclick="riClear()">🗑️ ล้างทั้งหมด</button>
+        <div class="toast" id="rit"></div>
+        <button class="btn-primary" id="ribtn" onclick="riSave()">💾 บันทึกข้อมูลอ่างเก็บน้ำ</button>
+      </div>
+    </div>
+
+    <!-- TAB: รายงานประจำวัน -->
+    <div class="tab-panel" id="tab-daily">
+      <p style="font-size:12px;color:var(--muted);margin-bottom:16px;">กรอกทุกหมวด — สามารถข้ามหมวดที่ไม่มีข้อมูลได้ ระบบบันทึกเฉพาะที่กรอก</p>
+      <div class="fgrid" style="margin-bottom:16px;">
+        <div class="fg"><label>📅 วันที่ <span class="req">*</span></label><input type="date" id="dd"/></div>
+        <div class="fg"><label>👤 ผู้บันทึก <span class="req">*</span></label><input type="text" id="drp" placeholder="ชื่อ-สกุล"/></div>
+      </div>
+      <div class="fsec"><div class="fsec-title">🏞️ ข้อมูลเขื่อนอุบลรัตน์</div>
+        <div class="fgrid">
+          <div class="fg"><label>ระดับน้ำ (ม.รทก.)</label><input type="number" id="d_dam_level" step="0.01"/></div>
+          <div class="fg"><label>ปริมาณน้ำใช้งาน (ล้าน ลบ.ม.)</label><input type="number" id="d_dam_use" step="0.01"/></div>
+          <div class="fg"><label>ความจุปัจจุบัน (%)</label><input type="number" id="d_dam_pct" step="0.1" min="0" max="100"/></div>
+          <div class="fg"><label>น้ำไหลเข้า (ล้าน ลบ.ม.)</label><input type="number" id="d_dam_in" step="0.01"/></div>
+          <div class="fg"><label>น้ำระบายออก (ล้าน ลบ.ม.)</label><input type="number" id="d_dam_out" step="0.01"/></div>
+          <div class="fg"><label>ปริมาณน้ำรวม (ล้าน ลบ.ม.)</label><input type="number" id="d_dam_total" step="0.01"/></div>
+        </div>
+      </div>
+      <div class="fsec"><div class="fsec-title">📡 สภาพอากาศ (สถานีอุตุฯ หนองบัวลำภู)</div>
+        <div class="fgrid">
+          <div class="fg"><label>อุณหภูมิ (°C)</label><input type="number" id="d_tmd_temp" step="0.1"/></div>
+          <div class="fg"><label>เมฆ (ส่วน/10)</label><input type="number" id="d_tmd_cloud" step="1" min="0" max="10"/></div>
+          <div class="fg"><label>ฝนเมื่อวาน (มม.)</label><input type="number" id="d_tmd_rain_yest" step="0.1"/></div>
+          <div class="fg"><label>ความกดอากาศ (hPa)</label><input type="number" id="d_tmd_pressure" step="0.1"/></div>
+          <div class="fg"><label>ความชื้น (%)</label><input type="number" id="d_tmd_humidity" step="1"/></div>
+          <div class="fg"><label>ลม</label><input type="text" id="d_tmd_wind" placeholder="เช่น ตต./10 กม./ชม."/></div>
+          <div class="fg"><label>อุณหภูมิต่ำสุดเช้า (°C)</label><input type="number" id="d_tmd_temp_min" step="0.1"/></div>
+          <div class="fg"><label>ทัศนวิสัย (กม.)</label><input type="number" id="d_tmd_visibility" step="0.1"/></div>
+          <div class="fg"><label>ฝนรวมทั้งปี (มม.)</label><input type="number" id="d_tmd_rain_year" step="0.1"/></div>
+        </div>
+      </div>
+      <div class="fsec"><div class="fsec-title">🌿 คุณภาพอากาศ (PM2.5 / AQI)</div>
+        <div class="fgrid">
+          <div class="fg"><label>PM2.5 (μg/m³)</label><input type="number" id="d_aqi_pm25" step="0.1"/></div>
+          <div class="fg"><label>AQI</label><input type="number" id="d_aqi_value" step="1"/></div>
+          <div class="fg"><label>จำนวนวันเกินมาตรฐานสะสม</label><input type="number" id="d_aqi_days_over" step="1"/></div>
+        </div>
+      </div>
+      <div class="fsec"><div class="fsec-title">🚨 สาธารณภัย</div>
+        <div class="fgrid">
+          <div class="fg"><label>สถานะ</label>
+            <select id="d_disaster_status">
+              <option value="ไม่เกิดสาธารณภัยในพื้นที่">ไม่เกิดสาธารณภัยในพื้นที่</option>
+              <option value="น้ำท่วม / น้ำหลาก">น้ำท่วม / น้ำหลาก</option>
+              <option value="วาตภัย / พายุฝนฟ้าคะนอง">วาตภัย / พายุฝนฟ้าคะนอง</option>
+              <option value="ภัยแล้ง">ภัยแล้ง</option>
+              <option value="อัคคีภัย / ไฟป่า">อัคคีภัย / ไฟป่า</option>
+              <option value="อื่นๆ">อื่นๆ</option>
+            </select>
+          </div>
+          <div class="fg"><label>อำเภอที่ได้รับผลกระทบ</label><input type="text" id="d_disaster_amphoe" placeholder="ถ้ามี"/></div>
+        </div>
+        <div class="fg" style="margin-top:10px;"><label>รายละเอียดเพิ่มเติม</label><textarea id="d_disaster_note" rows="2" placeholder="ถ้ามี"></textarea></div>
+      </div>
+      <div class="form-actions">
+        <div class="toast" id="dt"></div>
+        <button class="btn-primary" id="dbtn" onclick="saveD()">💾 บันทึกรายงานประจำวันทั้งหมด</button>
+      </div>
+    </div>
+
+    <!-- TAB: ประวัติ -->
+    <div class="tab-panel" id="tab-hist">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <div style="font-size:13px;font-weight:700;color:var(--brand);">ประวัติการบันทึก 20 รายการล่าสุด</div>
+        <button class="btn-ghost" onclick="clrHist()" style="font-size:11px;padding:6px 12px;">🗑️ ล้างประวัติ</button>
+      </div>
+      <div class="ht-wrap">
+        <table class="ht"><thead><tr>
+          <th>วันที่</th><th>เวลา</th><th>หมวด</th><th>รายการ</th><th>ค่า</th><th>สถานะ</th><th>ผู้บันทึก</th>
+        </tr></thead><tbody id="htBody"><tr><td colspan="7" style="text-align:center;padding:30px;color:var(--muted);">ยังไม่มีประวัติการบันทึก</td></tr></tbody></table>
+      </div>
+    </div>
+
+  </div><!-- /tabs-wrap -->
+</div><!-- /main-content -->
+</main>
+
+<footer>
+  <strong>สำนักงานสถิติจังหวัดหนองบัวลำภู</strong><br>
+  © 2025 ระบบบันทึกข้อมูลสถานการณ์น้ำจังหวัดหนองบัวลำภู
+</footer>
+
+<script>
+/* ============================================================
+ *  CONFIG — เปลี่ยน API_URL เป็น Web App URL ของ Apps Script
+ * ============================================================ */
+const API_URL   = window.APP_CONFIG?.API_URL || ""; // ตั้งค่าใน config.js
+
+/* ============================================================
+ *  PIN
+ * ============================================================ */
+function doPin() {
+  const v = document.getElementById("pinInp").value.trim();
+  if (!v) {
+    const e = document.getElementById("pinErr");
+    e.textContent = "กรุณาใส่รหัส PIN";
+    document.getElementById("pinInp").value = "";
+    setTimeout(() => { e.textContent = ""; }, 3000);
+    return;
+  }
+  document.getElementById("pinScreen").style.display = "none";
+  document.getElementById("mainContent").classList.add("open");
+  document.getElementById("btnOut").style.display = "inline-block";
+  sessionStorage.setItem("wat_ok","1");
+  sessionStorage.setItem("wat_pin",v);
+  initAll();
+}
+function doLogout() {
+  sessionStorage.removeItem("wat_ok");
+  sessionStorage.removeItem("wat_pin");
+  document.getElementById("mainContent").classList.remove("open");
+  document.getElementById("btnOut").style.display = "none";
+  document.getElementById("pinScreen").style.display = "flex";
+  document.getElementById("pinInp").value = "";
+}
+if (sessionStorage.getItem("wat_ok") === "1") {
+  document.getElementById("pinScreen").style.display = "none";
+  document.getElementById("mainContent").classList.add("open");
+  document.getElementById("btnOut").style.display = "inline-block";
+}
+
+/* ============================================================
+ *  TABS
+ * ============================================================ */
+function goTab(name, btn) {
+  document.querySelectorAll(".tab-panel").forEach(p => p.classList.remove("on"));
+  document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("on"));
+  document.getElementById("tab-"+name).classList.add("on");
+  btn.classList.add("on");
+}
+
+/* ============================================================
+ *  STATIONS
+ * ============================================================ */
+const STA = [
+  {id:"PN01",no:1, nm:"วังปลาป้อม",       am:"นาวัง",              bk:290.0},
+  {id:"PN02",no:2, nm:"โคกกระทอ",         am:"นาวัง",              bk:266.0},
+  {id:"PN03",no:3, nm:"วังสามหาบ",         am:"นาวัง",              bk:258.0},
+  {id:"PN04",no:4, nm:"บ้านหนองด่าน",      am:"นากลาง",            bk:249.0},
+  {id:"PN05",no:5, nm:"บ้านฝั่งแดง",       am:"นากลาง",            bk:237.0},
+  {id:"PN06",no:6, nm:"ปตร.หนองหว้าใหญ่",  am:"เมืองหนองบัวลำภู", bk:216.0},
+  {id:"PN07",no:7, nm:"วังหมื่น",           am:"เมืองหนองบัวลำภู", bk:210.0},
+  {id:"PN08",no:8, nm:"ปตร.ปู่หลอด",       am:"เมืองหนองบัวลำภู", bk:203.0},
+  {id:"PN09",no:9, nm:"บ้านข้องโป้",       am:"เมืองหนองบัวลำภู", bk:201.0},
+  {id:"PN10",no:10,nm:"ปตร.หัวนา",         am:"เมืองหนองบัวลำภู", bk:191.0},
+  {id:"MG01",no:1, nm:"คลองบุญทัน",        am:"สุวรรณคูหา",        bk:231.0, rv:"โมง"},
+  {id:"MG02",no:2, nm:"บ้านโคก",           am:"สุวรรณคูหา",        bk:218.0, rv:"โมง"},
+];
+const msV = {};
+
+function buildMs() {
+  const tb = document.getElementById("ms-body"); tb.innerHTML = "";
+  [[STA.filter(s=>!s.rv),"พะเนียง"],[STA.filter(s=>s.rv),"โมง"]].forEach(([arr,lbl]) => {
+    const gr=document.createElement("tr"); gr.className="rg";
+    gr.innerHTML=`<td colspan="5">ลำน้ำ${lbl}</td>`; tb.appendChild(gr);
+    arr.forEach(s=>{
+      const tr=document.createElement("tr"); tr.id="ms-r-"+s.id;
+      tr.innerHTML=`<td style="font-size:11px;font-weight:700;color:var(--muted);padding:8px 10px 8px 14px;">${s.id}</td>
+        <td style="padding:8px 12px;font-weight:600;">${s.nm}</td>
+        <td style="padding:8px 12px;color:var(--muted);">${s.am}</td>
+        <td style="text-align:right;padding:8px 12px;font-family:monospace;">${s.bk.toFixed(2)}</td>
+        <td style="padding:5px 10px;">
+          <input class="ms-inp" id="ms-i-${s.id}" type="number" step="0.01" placeholder="0.00"
+            oninput="msIn('${s.id}')" onkeydown="if(event.key==='Enter'){event.preventDefault();msNext('${s.id}');}"/>
+        </td>`;
+      tb.appendChild(tr);
+    });
+  });
+  setToday("ms-d"); setNow("ms-t");
+}
+function msIn(id){ const el=document.getElementById("ms-i-"+id); el.classList.toggle("has",el.value.trim()!==""); msV[id]=el.value.trim()?parseFloat(el.value):undefined; }
+function msNext(id){ const ids=STA.map(s=>s.id); const i=ids.indexOf(id); if(i<ids.length-1){const nx=document.getElementById("ms-i-"+ids[i+1]);if(nx)nx.focus();} }
+function msClear(){ STA.forEach(s=>{const el=document.getElementById("ms-i-"+s.id);if(el){el.value="";el.classList.remove("has");}msV[s.id]=undefined;}); }
+
+/* ============================================================
+ *  RESERVOIRS (14 อ่างจาก XLS ชลประทานหนองบัวลำภู)
+ * ============================================================ */
+const RES = [
+  {id:"R01",no:1, nm:"ห้วยยางเงาะ",       vl:"ถ้ำกลองเพล",    am:"เมืองหนองบัวลำภู", cp:0.400},
+  {id:"R03",no:3, nm:"ห้วยเหล่ายาง",       vl:"ภูพานทอง",      am:"เมืองหนองบัวลำภู", cp:2.469},
+  {id:"R02",no:2, nm:"ห้วยซับม่วง",        vl:"หนองกุงแก้ว",   am:"ศรีบุญเรือง",       cp:0.750},
+  {id:"R04",no:4, nm:"อ่างน้ำบอง",         vl:"ตาดไฮ",         am:"โนนสัง",            cp:20.800},
+  {id:"R05",no:5, nm:"ห้วยสนามชัย",        vl:"สนามชัย",       am:"นากลาง",            cp:0.330},
+  {id:"R09",no:9, nm:"ห้วยไร่ 1",          vl:"โนนธาตุพัฒนา",  am:"นากลาง",            cp:0.200},
+  {id:"R10",no:10,nm:"ห้วยไร่ 2",          vl:"สระแก้ว",       am:"นากลาง",            cp:0.695},
+  {id:"R11",no:11,nm:"ห้วยลำใย",           vl:"เกษมมณี",       am:"นากลาง",            cp:0.450},
+  {id:"R12",no:12,nm:"ห้วยโป่งซาง",        vl:"ป่าแดงงาม",     am:"นากลาง",            cp:0.300},
+  {id:"R06",no:6, nm:"ผาวัง",              vl:"โคกนาเหล่า",    am:"นาวัง",             cp:2.122},
+  {id:"R07",no:7, nm:"ห้วยลาดกั่ว",        vl:"นาแก",          am:"นาวัง",             cp:0.842},
+  {id:"R14",no:14,nm:"ผาจ้ำน้ำ",           vl:"ภูเขาวง",       am:"นาวัง",             cp:0.085},
+  {id:"R08",no:8, nm:"ห้วยโซ่",            vl:"โคกนกพัฒนา",    am:"สุวรรณคูหา",        cp:1.430},
+  {id:"R13",no:13,nm:"ห้วยบ้านคลองเจริญ",  vl:"คลองเจริญ",     am:"สุวรรณคูหา",        cp:0.623},
+];
+const RIG=[
+  {am:"เมืองหนองบัวลำภู",ids:["R01","R03"]},
+  {am:"ศรีบุญเรือง",ids:["R02"]},
+  {am:"โนนสัง",ids:["R04"]},
+  {am:"นากลาง",ids:["R05","R09","R10","R11","R12"]},
+  {am:"นาวัง",ids:["R06","R07","R14"]},
+  {am:"สุวรรณคูหา",ids:["R08","R13"]},
+];
+const riV={};
+
+function buildRi(){
+  const tb=document.getElementById("riBody"); tb.innerHTML="";
+  RIG.forEach(g=>{
+    const gh=document.createElement("tr"); gh.className="ri-gr";
+    gh.innerHTML=`<td colspan="6">อำเภอ${g.am}</td>`; tb.appendChild(gh);
+    g.ids.forEach(id=>{
+      const r=RES.find(x=>x.id===id); if(!r) return;
+      const tr=document.createElement("tr"); tr.id="ri-rw-"+r.id;
+      tr.innerHTML=`<td class="ri-no">R${String(r.no).padStart(2,"0")}</td>
+        <td class="ri-nm"><div class="ri-nm-m">${r.nm}</div><div class="ri-nm-s">บ้าน${r.vl} · อ.${r.am}</div></td>
+        <td class="ri-cp">${r.cp.toFixed(3)}<small>ล้าน ลบ.ม.</small></td>
+        <td class="ri-ip"><div class="ri-vw">
+          <input class="ri-vi" id="ri-v-${r.id}" type="number" step="0.001" min="0" max="${(r.cp*1.05).toFixed(3)}" placeholder="0.000"
+            oninput="riIn('${r.id}')" onkeydown="if(event.key==='Enter'){event.preventDefault();riNext('${r.id}');}"/>
+          <span class="ri-vu">Mm³</span></div></td>
+        <td class="ri-pp"><div class="ri-pr">
+          <div class="ri-bo"><div class="ri-bi" id="ri-b-${r.id}"></div></div>
+          <span class="ri-pl" id="ri-p-${r.id}">—</span></div></td>
+        <td class="ri-sp"><span class="ri-bd" id="ri-s-${r.id}">—</span></td>`;
+      tb.appendChild(tr);
+    });
+  });
+  setToday("riD");
+}
+
+function riIn(id){
+  const r=RES.find(x=>x.id===id), inp=document.getElementById("ri-v-"+id);
+  const raw=inp.value.trim(), vol=parseFloat(raw), row=document.getElementById("ri-rw-"+id);
+  inp.classList.remove("rh","rv"); row.classList.remove("rf","ro"); riV[id]=undefined;
+  const bar=document.getElementById("ri-b-"+id), pl=document.getElementById("ri-p-"+id), st=document.getElementById("ri-s-"+id);
+  if(raw===""||isNaN(vol)||vol<0){bar.style.cssText="width:0%;background:#e2e8f0";pl.textContent="—";pl.style.color="#94a3b8";st.className="ri-bd";st.textContent="—";riMeta();return;}
+  const pct=Math.round((vol/r.cp)*100); riV[id]=vol;
+  if(vol>r.cp){inp.classList.add("rv");row.classList.add("ro");}else{inp.classList.add("rh");row.classList.add("rf");}
+  const c=pct>=80?"#2563eb":pct>=40?"#0d9488":pct>=20?"#f59e0b":"#dc2626";
+  bar.style.cssText=`width:${Math.min(pct,100)}%;background:${c}`;
+  pl.textContent=pct+"%"; pl.style.color=c;
+  if(pct>=80){st.className="ri-bd rful";st.textContent="💧 สูง";}
+  else if(pct>=40){st.className="ri-bd rnor";st.textContent="🟢 ปกติ";}
+  else if(pct>=20){st.className="ri-bd rwrn";st.textContent="🟡 น้อย";}
+  else{st.className="ri-bd rcrt";st.textContent="🔴 ต่ำมาก";}
+  riMeta();
+}
+function riNext(id){const ids=RES.map(r=>r.id);const i=ids.indexOf(id);if(i<ids.length-1){const nx=document.getElementById("ri-v-"+ids[i+1]);if(nx)nx.focus();}}
+function riMeta(){
+  const f=RES.filter(r=>riV[r.id]!==undefined).length;
+  document.getElementById("riCnt").textContent=f;
+  document.getElementById("riProg").style.width=Math.round((f/RES.length)*100)+"%";
+  if(f>0){let tv=0,tc=0;RES.forEach(r=>{if(riV[r.id]!==undefined){tv+=riV[r.id];tc+=r.cp;}});document.getElementById("riAvg").textContent=Math.round((tv/tc)*100)+"%";}
+  else document.getElementById("riAvg").textContent="—";
+}
+function riClear(){if(!confirm("ล้างข้อมูลที่กรอกทั้งหมด?"))return;RES.forEach(r=>{const el=document.getElementById("ri-v-"+r.id);if(el)el.value="";riV[r.id]=undefined;riIn(r.id);});}
+
+/* ============================================================
+ *  HISTORY
+ * ============================================================ */
+const LOG=[];
+function addLog(cat,item,val,rc,ok="✅"){
+  LOG.unshift({dt:new Date().toLocaleDateString("th-TH",{day:"numeric",month:"short"}),tm:new Date().toLocaleTimeString("th-TH",{hour:"2-digit",minute:"2-digit"}),cat,item,val,rc,ok});
+  if(LOG.length>50)LOG.pop(); renderLog();
+}
+const catCls={water:"w",rain:"r",res:"res",daily:"d"};
+const catLbl={water:"💧 ระดับน้ำ",rain:"🌧️ ฝน",res:"🏞️ อ่าง",daily:"📊 รายวัน"};
+function renderLog(){
+  const tb=document.getElementById("htBody");
+  if(!LOG.length){tb.innerHTML='<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--muted);">ยังไม่มีประวัติการบันทึก</td></tr>';return;}
+  tb.innerHTML=LOG.slice(0,20).map(h=>`<tr><td>${h.dt}</td><td>${h.tm}</td><td><span class="pill ${catCls[h.cat]||'w'}">${catLbl[h.cat]||h.cat}</span></td><td>${h.item}</td><td style="font-family:monospace;font-weight:700;">${h.val}</td><td>${h.ok}</td><td>${h.rc}</td></tr>`).join("");
+}
+function clrHist(){if(!confirm("ล้างประวัติ?"))return;LOG.length=0;renderLog();}
+
+/* ============================================================
+ *  API
+ * ============================================================ */
+async function api(p){
+  if(!API_URL)return{ok:true,demo:true,message:"demo"};
+  const action = String(p.action || "").toLowerCase();
+  if(["savewater","saverain","savereservoir","savedailyreport"].includes(action)){
+    p.pin = sessionStorage.getItem("wat_pin") || "";
+  }
+  const r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(p)});
+  return await r.json();
+}
+function toast(id,msg,cls,dur=4500){const el=document.getElementById(id);if(!el)return;el.className="toast "+cls;el.textContent=msg;el.style.display="flex";setTimeout(()=>{el.style.display="none";},dur);}
+function setBtn(id,loading){const b=document.getElementById(id);if(!b)return;b.disabled=loading;if(loading){b._o=b.textContent;b.textContent="⏳ กำลังบันทึก...";}else if(b._o)b.textContent=b._o;}
+
+/* ============================================================
+ *  SAVE: WATER
+ * ============================================================ */
+async function saveW(){
+  const date=v("w-date"),time=v("w-time"),st=v("w-st"),lv=v("w-lv"),fl=v("w-fl"),rc=v("w-rc").trim(),nt=v("w-nt");
+  if(!date||!time||!st||!lv||!rc){toast("wt","⚠️ กรุณากรอกข้อมูลที่มี * ให้ครบ","err");return;}
+  setBtn("wbtn",true);
+  try{
+    const r=await api({action:"savewater",station_id:st,date,time,level:parseFloat(lv),flow:fl?parseFloat(fl):"",recorder:rc,note:nt});
+    if(r.ok){toast("wt",r.demo?`✅ บันทึกแล้ว (demo) — ${st} ${lv} ม.`:`✅ ${r.message}`,"ok");addLog("water",st,lv+" ม.",rc);}
+    else toast("wt","❌ "+r.error,"err");
+  }catch{toast("wt","❌ เชื่อมต่อ API ไม่ได้","err");}
+  setBtn("wbtn",false);
+}
+function clearW(){["w-date","w-time","w-st","w-lv","w-fl","w-rc","w-nt"].forEach(id=>{const el=document.getElementById(id);if(el)el.value="";});}
+
+/* ============================================================
+ *  SAVE: MULTI
+ * ============================================================ */
+async function saveMs(){
+  const date=v("ms-d"),time=v("ms-t"),rc=v("ms-rc").trim();
+  if(!date||!time||!rc){toast("mst","⚠️ กรุณาระบุวันที่ เวลา และผู้บันทึก","err");return;}
+  const entries=STA.filter(s=>msV[s.id]!==undefined);
+  if(!entries.length){toast("mst","⚠️ ยังไม่ได้กรอกระดับน้ำ","err");return;}
+  setBtn("msbtn",true);
+  let ok=0,fail=0;
+  for(const s of entries){
+    try{const r=await api({action:"savewater",station_id:s.id,date,time,level:msV[s.id],recorder:rc});if(r.ok){ok++;addLog("water",s.nm,msV[s.id]+" ม.",rc);}else fail++;}
+    catch{fail++;}
+  }
+  setBtn("msbtn",false);
+  if(fail===0)toast("mst",`✅ บันทึก ${ok} สถานีเรียบร้อย`,"ok");
+  else toast("mst",`⚠️ สำเร็จ ${ok} / ล้มเหลว ${fail}`,"err");
+}
+
+/* ============================================================
+ *  SAVE: RAIN
+ * ============================================================ */
+async function saveR(){
+  const date=v("r-d"),am=v("r-am"),rc=v("r-rc").trim(),r24=v("r-24");
+  if(!date||!am||!rc||!r24){toast("rt","⚠️ กรุณากรอกข้อมูลที่มี * ให้ครบ","err");return;}
+  setBtn("rbtn",true);
+  try{
+    const r=await api({action:"saverain",amphoe:am,date,rain_24hr:parseFloat(r24),rain_7day:v("r-7")||"",rain_month:v("r-mo")||"",recorder:rc});
+    if(r.ok){toast("rt",r.demo?"✅ บันทึกแล้ว (demo)":`✅ ${r.message}`,"ok");addLog("rain","อ."+am,r24+" มม.",rc);}
+    else toast("rt","❌ "+r.error,"err");
+  }catch{toast("rt","❌ เชื่อมต่อ API ไม่ได้","err");}
+  setBtn("rbtn",false);
+}
+function clearR(){["r-d","r-am","r-rc","r-24","r-7","r-mo"].forEach(id=>{const el=document.getElementById(id);if(el)el.value="";});}
+
+/* ============================================================
+ *  SAVE: RESERVOIR
+ * ============================================================ */
+async function riSave(){
+  const date=v("riD"),rc=v("riRc").trim();
+  if(!date){toast("rit","⚠️ กรุณาระบุวันที่","err");return;}
+  if(!rc){toast("rit","⚠️ กรุณาระบุชื่อผู้บันทึก","err");return;}
+  const entries=RES.filter(r=>riV[r.id]!==undefined);
+  if(!entries.length){toast("rit","⚠️ ยังไม่ได้กรอกข้อมูล","err");return;}
+  setBtn("ribtn",true);
+  let ok=0,fail=0;
+  for(const r of entries){
+    try{
+      const res=await api({action:"savereservoir",reservoir_id:r.id,reservoir_name:r.nm,amphoe:r.am,date,current_volume:riV[r.id],capacity:r.cp,reporter:rc});
+      if(res.ok){ok++;addLog("res",r.nm,riV[r.id].toFixed(3)+" Mm³",rc);}else fail++;
+    }catch{fail++;}
+  }
+  setBtn("ribtn",false);
+  if(fail===0)toast("rit",`✅ บันทึก ${ok} อ่างเรียบร้อย`,"ok");
+  else toast("rit",`⚠️ สำเร็จ ${ok} / ล้มเหลว ${fail}`,"err");
+}
+
+/* ============================================================
+ *  SAVE: DAILY REPORT
+ * ============================================================ */
+async function saveD(){
+  const date=v("dd"),rp=v("drp").trim();
+  if(!date||!rp){toast("dt","⚠️ กรุณาระบุวันที่และผู้บันทึก","err");return;}
+  const g=id=>document.getElementById(id)?.value||"";
+  setBtn("dbtn",true);
+  try{
+    const r=await api({action:"savedailyreport",date,reporter:rp,
+      dam_level:g("d_dam_level"),dam_use:g("d_dam_use"),dam_pct:g("d_dam_pct"),dam_in:g("d_dam_in"),dam_out:g("d_dam_out"),dam_total:g("d_dam_total"),
+      tmd_temp:g("d_tmd_temp"),tmd_cloud:g("d_tmd_cloud"),tmd_rain_yest:g("d_tmd_rain_yest"),tmd_pressure:g("d_tmd_pressure"),
+      tmd_humidity:g("d_tmd_humidity"),tmd_wind:g("d_tmd_wind"),tmd_temp_min:g("d_tmd_temp_min"),tmd_visibility:g("d_tmd_visibility"),tmd_rain_year:g("d_tmd_rain_year"),
+      aqi_pm25:g("d_aqi_pm25"),aqi_value:g("d_aqi_value"),aqi_days_over:g("d_aqi_days_over"),
+      disaster_status:g("d_disaster_status"),disaster_amphoe:g("d_disaster_amphoe"),disaster_note:g("d_disaster_note"),
+    });
+    if(r.ok){toast("dt",r.demo?`✅ บันทึกแล้ว (demo)`:`✅ ${r.message}`,"ok");addLog("daily","รายงาน "+date,"ครบ",rp);}
+    else toast("dt","❌ "+r.error,"err");
+  }catch{toast("dt","❌ เชื่อมต่อ API ไม่ได้","err");}
+  setBtn("dbtn",false);
+}
+
+/* ============================================================
+ *  HELPERS
+ * ============================================================ */
+function v(id){return document.getElementById(id)?.value||"";}
+function setToday(id){const el=document.getElementById(id);if(el&&!el.value)el.value=new Date().toISOString().slice(0,10);}
+function setNow(id){const el=document.getElementById(id);if(el&&!el.value){const n=new Date();el.value=String(n.getHours()).padStart(2,"0")+":"+String(n.getMinutes()).padStart(2,"0");}}
+
+function initAll(){
+  buildMs(); buildRi();
+  setToday("w-date"); setNow("w-time");
+  setToday("r-d"); setToday("dd");
+  renderLog();
+}
+
+// auto-init if already auth'd
+if(sessionStorage.getItem("wat_ok")==="1") initAll();
+</script>
+</body>
+</html>
