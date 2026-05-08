@@ -24,6 +24,16 @@ const SHEET_WATER     = "WaterLevel";
 const SHEET_RAIN      = "Rainfall";
 const SHEET_RESERVOIR = "Reservoir";
 const SHEET_SETTINGS  = "Settings";
+const RESERVOIR_HEADERS = [
+  "reservoir_id",
+  "reservoir_name",
+  "amphoe",
+  "capacity",
+  "current_volume",
+  "date",
+  "reporter",
+  "updated_at"
+];
 
 // ===== ENTRY POINTS =====
 
@@ -31,19 +41,20 @@ const SHEET_SETTINGS  = "Settings";
  * รองรับ GET (อ่านข้อมูล) และ JSONP
  */
 function doGet(e) {
-  const action   = (e.parameter.action   || "summary").toLowerCase();
-  const callback = e.parameter.callback;  // สำหรับ JSONP
+  const params = (e && e.parameter) ? e.parameter : {};
+  const action   = (params.action   || "summary").toLowerCase();
+  const callback = params.callback;  // สำหรับ JSONP
 
   let data;
   try {
     switch (action) {
       case "summary":   data = getSummary(); break;
-      case "stations":  data = getStations(e.parameter.river); break;
-      case "water":     data = getWaterLevels(e.parameter.station_id, parseInt(e.parameter.days || "7")); break;
-      case "rain":      data = getRainfall(parseInt(e.parameter.days || "7")); break;
+      case "stations":  data = getStations(params.river); break;
+      case "water":     data = getWaterLevels(params.station_id, parseInt(params.days || "7")); break;
+      case "rain":      data = getRainfall(parseInt(params.days || "7")); break;
       case "reservoir": data = getReservoirs(); break;
-      case "history":   data = getHistory(parseInt(e.parameter.limit || "20")); break;
-      case "dailyreport": data = getDailyReport(e.parameter.date); break;
+      case "history":   data = getHistory(parseInt(params.limit || "20")); break;
+      case "dailyreport": data = getDailyReport(params.date); break;
       case "ping":      data = { ok: true, time: new Date().toISOString() }; break;
       default:          data = { error: "unknown action: " + action };
     }
@@ -61,9 +72,9 @@ function doGet(e) {
 function doPost(e) {
   let payload = {};
   try {
-    if (e.postData && e.postData.contents) {
+    if (e && e.postData && e.postData.contents) {
       payload = JSON.parse(e.postData.contents);
-    } else if (e.parameter) {
+    } else if (e && e.parameter) {
       payload = e.parameter;
     }
   } catch (err) {
@@ -184,7 +195,8 @@ function getRainfall(days) {
 }
 
 function getReservoirs() {
-  return sheetToObjects(ss().getSheetByName(SHEET_RESERVOIR));
+  const sheet = getOrCreateReservoirSheet();
+  return sheetToObjects(sheet);
 }
 
 function getHistory(limit) {
@@ -269,27 +281,98 @@ function saveDailyReport(p) {
 }
 
 function saveReservoir(p) {
-  const sheet = ss().getSheetByName(SHEET_RESERVOIR);
-  // อัปเดตแถวที่ตรงกับ reservoir_id ถ้ามี ไม่งั้น append
+  const sheet = getOrCreateReservoirSheet();
   const data = sheet.getDataRange().getValues();
   const headers = data[0];
-  const idIdx = headers.indexOf("reservoir_id");
-  const curIdx = headers.indexOf("current_volume");
+  const payload = normalizeReservoirPayload(p);
 
-  if (idIdx >= 0) {
-    for (let i = 1; i < data.length; i++) {
-      if (data[i][idIdx] === p.reservoir_id) {
-        if (curIdx >= 0 && p.current_volume !== undefined) {
-          sheet.getRange(i + 1, curIdx + 1).setValue(p.current_volume);
+  if (!payload.reservoir_id && !payload.reservoir_name) {
+    return { ok: false, error: "missing reservoir_id or reservoir_name" };
+  }
+
+  const idIdx = headers.indexOf("reservoir_id");
+  const nameIdx = headerIndex(headers, ["reservoir_name", "name"]);
+  const curIdx = headerIndex(headers, ["current_volume", "current"]);
+  const dateIdx = headers.indexOf("date");
+  const updatedIdx = headers.indexOf("updated_at");
+
+  const row = headers.map(h => {
+    if (h === "updated_at") return new Date();
+    if (h === "name") return payload.reservoir_name;
+    if (h === "current") return payload.current_volume;
+    return payload[h] !== undefined && payload[h] !== null ? payload[h] : "";
+  });
+
+  for (let i = 1; i < data.length; i++) {
+    const sameId = idIdx >= 0 && payload.reservoir_id &&
+      String(data[i][idIdx]) === String(payload.reservoir_id);
+    const sameName = nameIdx >= 0 && payload.reservoir_name &&
+      String(data[i][nameIdx]) === String(payload.reservoir_name);
+
+    if (sameId || sameName) {
+      if (curIdx >= 0) sheet.getRange(i + 1, curIdx + 1).setValue(payload.current_volume);
+      if (dateIdx >= 0) sheet.getRange(i + 1, dateIdx + 1).setValue(payload.date || "");
+      if (updatedIdx >= 0) sheet.getRange(i + 1, updatedIdx + 1).setValue(new Date());
+
+      headers.forEach((h, col) => {
+        if (["current_volume", "current", "date", "updated_at"].indexOf(h) !== -1) return;
+        if (h === "name" && payload.reservoir_name) {
+          sheet.getRange(i + 1, col + 1).setValue(payload.reservoir_name);
+          return;
         }
-        return { ok: true, message: "อัปเดตข้อมูลอ่างเก็บน้ำเรียบร้อย" };
-      }
+        if (payload[h] !== undefined && payload[h] !== null && payload[h] !== "") {
+          sheet.getRange(i + 1, col + 1).setValue(payload[h]);
+        }
+      });
+
+      return { ok: true, message: "Reservoir data updated" };
     }
   }
-  // ไม่พบ → append
-  const row = headers.map(h => p[h] || "");
+
   sheet.appendRow(row);
-  return { ok: true, message: "เพิ่มข้อมูลอ่างเก็บน้ำเรียบร้อย" };
+  return { ok: true, message: "Reservoir data added" };
+}
+
+function normalizeReservoirPayload(p) {
+  return {
+    reservoir_id: p.reservoir_id || p.id || "",
+    reservoir_name: p.reservoir_name || p.name || "",
+    amphoe: p.amphoe || "",
+    capacity: toNumberOrBlank(p.capacity),
+    current_volume: toNumberOrBlank(p.current_volume !== undefined ? p.current_volume : p.current),
+    date: p.date || Utilities.formatDate(new Date(), "Asia/Bangkok", "yyyy-MM-dd"),
+    reporter: p.reporter || "",
+    updated_at: new Date()
+  };
+}
+
+function getOrCreateReservoirSheet() {
+  const ss_obj = ss();
+  let sheet = ss_obj.getSheetByName(SHEET_RESERVOIR);
+  if (!sheet) {
+    sheet = ss_obj.insertSheet(SHEET_RESERVOIR);
+    sheet.appendRow(RESERVOIR_HEADERS);
+    return sheet;
+  }
+
+  if (sheet.getLastRow() === 0 || sheet.getLastColumn() === 0) {
+    sheet.appendRow(RESERVOIR_HEADERS);
+  }
+  return sheet;
+}
+
+function toNumberOrBlank(v) {
+  if (v === "" || v === null || v === undefined) return "";
+  const n = parseFloat(v);
+  return isNaN(n) ? "" : n;
+}
+
+function headerIndex(headers, names) {
+  for (let i = 0; i < names.length; i++) {
+    const idx = headers.indexOf(names[i]);
+    if (idx >= 0) return idx;
+  }
+  return -1;
 }
 
 // ===== HELPERS =====
