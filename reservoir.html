@@ -916,6 +916,19 @@ initForm();
 initMap();
 loadData();
 setInterval(loadData, 5 * 60 * 1000);
+  const payload = {
+  action: "savereservoir",
+  pin: sessionStorage.getItem("wat_pin") || "",  // ← เพิ่มบรรทัดนี้
+  reservoir_id: rid,
+  reservoir_name: r.name,
+  amphoe: r.amphoe,
+  date:   date,
+  current_volume: parseFloat(vol),
+  level:    document.getElementById("fLevel").value   || "",
+  inflow:   document.getElementById("fInflow").value  || "",
+  outflow:  document.getElementById("fOutflow").value || "",
+  capacity: r.capacity,
+};
 </script>
 </body>
 </html>
