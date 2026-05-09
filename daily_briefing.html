@@ -1,0 +1,1149 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>รายงานสถานการณ์ประจำวัน · สำนักงานสถิติจังหวัดหนองบัวลำภู</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="config.js"></script>
+<script src="waterways-loader.js"></script>
+<script src="icons.js"></script>
+<style>
+  :root{
+    --brand:#0c4a6e; --brand-2:#0284c7; --accent:#0ea5e9;
+    --normal:#16a34a; --warn:#f59e0b; --crit:#dc2626;
+    --ink:#0f172a; --muted:#64748b; --line:#e2e8f0;
+    --bg:#f1f5f9; --card:#fff;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{font-family:'Sarabun',sans-serif;background:var(--bg);color:var(--ink);font-size:14px;}
+
+  /* ============ HERO HEADER ============ */
+  header{
+    background:
+      radial-gradient(ellipse at top right, rgba(14,165,233,.25) 0%, transparent 50%),
+      radial-gradient(ellipse at bottom left, rgba(99,102,241,.18) 0%, transparent 50%),
+      linear-gradient(135deg, #0c1e3d 0%, #0c4a6e 50%, #075985 100%);
+    color:#fff;
+    box-shadow:0 4px 24px rgba(0,0,0,.2);
+    position:sticky;top:0;z-index:1000;
+    overflow:hidden;
+  }
+  header::before{
+    content:"";position:absolute;top:0;left:0;right:0;height:1px;
+    background:linear-gradient(90deg, transparent, rgba(56,189,248,.6), transparent);
+  }
+  .header-inner{
+    max-width:1600px;margin:0 auto;
+    display:flex;align-items:center;justify-content:space-between;
+    gap:16px;flex-wrap:wrap;padding:14px 20px;
+  }
+  .brand{display:flex;align-items:center;gap:14px;}
+  .logo{
+    width:48px;height:48px;border-radius:12px;
+    background:linear-gradient(135deg, rgba(56,189,248,.3), rgba(14,165,233,.15));
+    display:flex;align-items:center;justify-content:center;
+    border:1px solid rgba(125,211,252,.4);
+    box-shadow:0 0 24px rgba(56,189,248,.35);
+  }
+  .brand h1{font-size:18px;font-weight:700;line-height:1.2;}
+  .brand .sub{font-size:11.5px;opacity:.7;margin-top:2px;color:#bae6fd;letter-spacing:.5px;}
+
+  .header-info{display:flex;align-items:center;gap:14px;}
+  .status-led{
+    display:flex;align-items:center;gap:8px;
+    background:rgba(0,0,0,.3);
+    border:1px solid rgba(34,197,94,.4);
+    padding:6px 12px;border-radius:8px;
+  }
+  .led-dot{
+    width:8px;height:8px;border-radius:50%;
+    background:#22c55e;box-shadow:0 0 8px #22c55e;
+    animation:ledBlink 1.5s ease-in-out infinite;
+  }
+  @keyframes ledBlink{0%,100%{opacity:1;}50%{opacity:.5;}}
+  .led-label{font-size:11px;font-weight:600;letter-spacing:1px;color:#86efac;font-family:'Courier New',monospace;}
+  .datetime{
+    display:flex;flex-direction:column;gap:2px;
+    padding:5px 12px;
+    border-left:1px solid rgba(125,211,252,.25);
+  }
+  .dt-row{display:flex;align-items:center;gap:6px;font-size:13px;}
+  .dt-row.dt-time{font-family:'Courier New',monospace;font-weight:600;color:#bae6fd;}
+
+  /* Nav */
+  nav{
+    background:rgba(255,255,255,.95);backdrop-filter:blur(8px);
+    border-bottom:1px solid var(--line);
+    position:sticky;top:74px;z-index:999;
+    box-shadow:0 1px 3px rgba(0,0,0,.04);
+  }
+  .nav-inner{
+    max-width:1600px;margin:0 auto;
+    display:flex;gap:4px;padding:8px 20px;overflow-x:auto;
+  }
+  nav a{
+    text-decoration:none;color:var(--muted);
+    padding:8px 14px;border-radius:6px;
+    font-size:13px;font-weight:500;
+    white-space:nowrap;transition:all .15s;
+  }
+  nav a:hover{background:#f0f9ff;color:var(--brand);}
+  nav a.active{background:var(--brand);color:#fff;}
+
+  /* Main container */
+  main{max-width:1600px;margin:0 auto;padding:16px 20px 40px;}
+
+  /* Section */
+  .section{margin-bottom:18px;}
+  .section-title{
+    display:flex;align-items:center;gap:10px;
+    margin-bottom:10px;font-size:13px;font-weight:600;
+    color:var(--brand);text-transform:uppercase;letter-spacing:.5px;
+  }
+  .section-title::before{
+    content:"";width:4px;height:18px;background:var(--brand-2);border-radius:2px;
+  }
+  .section-title .badge{
+    margin-left:auto;font-size:10px;font-weight:500;
+    color:var(--muted);text-transform:none;letter-spacing:0;
+  }
+  .section-title .ico{
+    color:var(--brand-2);
+    display:inline-flex;align-items:center;
+  }
+
+  /* Icon container styles */
+  .ic-box{
+    width:36px;height:36px;border-radius:10px;
+    display:inline-flex;align-items:center;justify-content:center;
+    flex-shrink:0;
+  }
+  .ic-box.blue{background:linear-gradient(135deg,#dbeafe,#bfdbfe);color:#1e40af;}
+  .ic-box.green{background:linear-gradient(135deg,#dcfce7,#bbf7d0);color:#166534;}
+  .ic-box.amber{background:linear-gradient(135deg,#fef3c7,#fde68a);color:#92400e;}
+  .ic-box.red{background:linear-gradient(135deg,#fee2e2,#fecaca);color:#991b1b;}
+  .ic-box.purple{background:linear-gradient(135deg,#ede9fe,#ddd6fe);color:#5b21b6;}
+  .ic-box.cyan{background:linear-gradient(135deg,#cffafe,#a5f3fc);color:#155e75;}
+  .ic-box.gradient-blue{background:linear-gradient(135deg,#0284c7,#0ea5e9);color:#fff;box-shadow:0 4px 12px rgba(2,132,199,.3);}
+  .ic-box.gradient-green{background:linear-gradient(135deg,#16a34a,#22c55e);color:#fff;box-shadow:0 4px 12px rgba(22,163,74,.3);}
+  .ic-box.gradient-red{background:linear-gradient(135deg,#dc2626,#ef4444);color:#fff;box-shadow:0 4px 12px rgba(220,38,38,.3);}
+
+  .ic-box svg{display:block;}
+
+  /* Card */
+  .card{
+    background:var(--card);border-radius:12px;
+    border:1px solid var(--line);
+    box-shadow:0 1px 3px rgba(0,0,0,.04);
+    overflow:hidden;
+  }
+  .card-head{
+    padding:12px 16px;
+    border-bottom:1px solid var(--line);
+    display:flex;align-items:center;justify-content:space-between;
+    background:linear-gradient(180deg, #f8fafc, #fff);
+  }
+  .card-head h3{font-size:13px;font-weight:600;color:var(--brand);}
+  .card-head .meta{font-size:11px;color:var(--muted);}
+  .card-body{padding:14px 16px;}
+
+  /* Grids */
+  .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+  .grid-2-1{display:grid;grid-template-columns:1.6fr 1fr;gap:12px;}
+  .grid-1-2{display:grid;grid-template-columns:1fr 1.6fr;gap:12px;}
+  .grid-3-eq{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+  @media(max-width:900px){
+    .grid-3,.grid-2-1,.grid-1-2,.grid-3-eq{grid-template-columns:1fr;}
+  }
+
+  /* ============ WEATHER CARD ============ */
+  .weather-main{
+    display:flex;align-items:center;gap:14px;
+    padding-bottom:12px;border-bottom:1px dashed var(--line);
+    margin-bottom:12px;
+  }
+  .weather-icon{font-size:48px;line-height:1;}
+  .weather-temps{flex:1;}
+  .weather-temps .high{font-size:34px;font-weight:700;color:var(--ink);line-height:1;}
+  .weather-temps .high .deg{font-size:20px;color:var(--muted);}
+  .weather-temps .low{font-size:13px;color:var(--muted);margin-top:4px;}
+  .weather-desc{font-size:12px;color:var(--muted);margin-top:6px;}
+  .weather-stats{
+    display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;
+  }
+  .ws-row{display:flex;align-items:center;gap:6px;}
+  .ws-icon{width:18px;text-align:center;}
+  .ws-label{color:var(--muted);}
+  .ws-value{font-weight:600;margin-left:auto;}
+
+  /* ============ TMD STATION CARD ============ */
+  .tmd-grid{
+    display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:12px;
+  }
+  .tmd-cell{
+    display:flex;align-items:center;gap:8px;
+    padding:8px;background:#f8fafc;border-radius:6px;
+  }
+  .tmd-cell .ic{font-size:18px;}
+  .tmd-cell .lbl{color:var(--muted);font-size:11px;line-height:1.2;}
+  .tmd-cell .val{font-weight:700;font-size:14px;color:var(--ink);line-height:1.2;}
+
+  /* ============ RAIN MAP ============ */
+  .rain-map-wrap{height:240px;border-radius:8px;overflow:hidden;position:relative;}
+  #rainMap{height:100%;}
+  .rain-amphoe-list{
+    display:flex;flex-wrap:wrap;gap:6px;margin-top:10px;
+  }
+  .ra-pill{
+    padding:4px 10px;border-radius:14px;font-size:11px;font-weight:600;
+    display:inline-flex;align-items:center;gap:5px;
+  }
+  .ra-pill.no{background:#f1f5f9;color:#64748b;}
+  .ra-pill.light{background:#dbeafe;color:#1e40af;}
+  .ra-pill.medium{background:#fef3c7;color:#92400e;}
+  .ra-pill.heavy{background:#fee2e2;color:#991b1b;}
+  .ra-pill.veryheavy{background:#fce7f3;color:#831843;}
+
+  /* ============ RESERVOIR ============ */
+  .gauge-wrap{display:flex;align-items:center;gap:16px;}
+  .gauge-circle{
+    width:90px;height:90px;border-radius:50%;
+    display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;position:relative;
+  }
+  .gauge-circle svg{width:100%;height:100%;transform:rotate(-90deg);}
+  .gauge-circle .gauge-text{
+    position:absolute;text-align:center;
+  }
+  .gauge-circle .gauge-text .pct{font-size:22px;font-weight:700;color:var(--ink);line-height:1;}
+  .gauge-circle .gauge-text .lbl{font-size:9px;color:var(--muted);margin-top:2px;}
+  .gauge-stats{flex:1;font-size:12px;}
+  .gs-row{display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px dashed var(--line);}
+  .gs-row:last-child{border:none;}
+  .gs-row .lbl{color:var(--muted);}
+  .gs-row .val{font-weight:600;}
+
+  /* Reservoir grid */
+  .reservoir-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(110px, 1fr));
+    gap:8px;
+  }
+  .res-card{
+    background:#f8fafc;border-radius:8px;padding:10px;
+    border-top:3px solid var(--normal);
+    text-align:center;
+  }
+  .res-card.warn{border-top-color:var(--warn);}
+  .res-card.crit{border-top-color:var(--crit);}
+  .res-card.full{border-top-color:#06b6d4;}
+  .res-card .name{font-size:10px;color:var(--muted);margin-bottom:4px;line-height:1.2;}
+  .res-card .pct{font-size:16px;font-weight:700;color:var(--ink);}
+  .res-card .vol{font-size:9px;color:var(--muted);margin-top:2px;}
+
+  /* ============ STATIONS ============ */
+  .station-grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(140px, 1fr));
+    gap:8px;
+  }
+  .st-card{
+    background:#f8fafc;border-radius:8px;padding:10px;
+    border-left:3px solid var(--normal);
+  }
+  .st-card.warn{border-left-color:var(--warn);background:#fffbeb;}
+  .st-card.crit{border-left-color:var(--crit);background:#fef2f2;}
+  .st-card .name{font-size:11px;color:var(--muted);margin-bottom:4px;font-weight:500;}
+  .st-card .level{font-size:16px;font-weight:700;color:var(--ink);}
+  .st-card .level .unit{font-size:10px;color:var(--muted);font-weight:400;}
+  .st-card .meta{font-size:10px;color:var(--muted);margin-top:3px;}
+  .st-card .meta .pill{
+    display:inline-block;padding:1px 6px;border-radius:8px;
+    background:#dcfce7;color:#166534;font-weight:600;
+  }
+  .st-card.warn .meta .pill{background:#fef3c7;color:#92400e;}
+  .st-card.crit .meta .pill{background:#fee2e2;color:#991b1b;}
+
+  /* River cross-section (mini) */
+  .xsec{
+    height:36px;width:100%;margin-top:6px;
+    position:relative;
+  }
+  .xsec svg{width:100%;height:100%;display:block;}
+
+  /* ============ AIR QUALITY ============ */
+  .aqi-main{
+    display:flex;align-items:center;gap:14px;
+    padding-bottom:12px;border-bottom:1px dashed var(--line);
+    margin-bottom:12px;
+  }
+  .aqi-circle{
+    width:74px;height:74px;border-radius:50%;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    color:#fff;flex-shrink:0;
+  }
+  .aqi-circle .num{font-size:22px;font-weight:700;line-height:1;}
+  .aqi-circle .lbl{font-size:9px;letter-spacing:.5px;margin-top:2px;}
+  .aqi-info{flex:1;}
+  .aqi-info .name{font-size:11px;color:var(--muted);}
+  .aqi-info .quality{font-size:14px;font-weight:600;color:var(--ink);margin-top:2px;}
+  .aqi-info .desc{font-size:11px;color:var(--muted);margin-top:4px;}
+  .aqi-chart-wrap{height:120px;}
+
+  /* ============ DISASTER ============ */
+  .disaster-card{
+    background:linear-gradient(135deg, #ecfdf5, #d1fae5);
+    border:1px solid #6ee7b7;
+    border-radius:10px;padding:14px;
+    text-align:center;
+  }
+  .disaster-card.alert{
+    background:linear-gradient(135deg, #fef2f2, #fecaca);
+    border-color:#fca5a5;
+  }
+  .disaster-icon{font-size:32px;margin-bottom:6px;}
+  .disaster-status{font-size:14px;font-weight:700;color:#065f46;}
+  .disaster-card.alert .disaster-status{color:#991b1b;}
+  .disaster-text{font-size:11px;color:var(--muted);margin-top:4px;}
+
+  /* ============ STATUS BAR ============ */
+  .summary-bar{
+    background:linear-gradient(135deg, #0c4a6e, #075985);
+    color:#fff;border-radius:10px;
+    padding:12px 16px;
+    display:flex;align-items:center;gap:12px;
+    box-shadow:0 4px 16px rgba(12,74,110,.25);
+  }
+  .summary-bar .ic{font-size:20px;}
+  .summary-bar .text{flex:1;font-size:13px;line-height:1.6;}
+  .summary-bar strong{color:#fde68a;}
+
+  /* Loading */
+  .loading{
+    display:flex;align-items:center;justify-content:center;
+    padding:40px;color:var(--muted);font-size:13px;gap:10px;
+  }
+  .spinner{
+    width:18px;height:18px;border:2px solid #e2e8f0;border-top-color:var(--brand-2);
+    border-radius:50%;animation:spin .8s linear infinite;
+  }
+  @keyframes spin{to{transform:rotate(360deg);}}
+
+  @media(max-width:768px){
+    nav{top:64px;}
+    .header-inner{padding:10px 14px;}
+    .brand h1{font-size:15px;}
+    .brand .sub{font-size:10px;}
+    main{padding:12px 14px;}
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-inner">
+    <div class="brand">
+      <div class="logo">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round">
+          <path d="M12 2v6"/>
+          <path d="M12 8c-3 4-6 7-6 11a6 6 0 0 0 12 0c0-4-3-7-6-11z"/>
+        </svg>
+      </div>
+      <div>
+        <h1>รายงานสถานการณ์ประจำวันจังหวัดหนองบัวลำภู</h1>
+        <div class="sub">Daily Briefing · สำนักงานสถิติจังหวัดหนองบัวลำภู</div>
+      </div>
+    </div>
+    <div class="header-info">
+      <div class="status-led" id="statusLed">
+        <span class="led-dot"></span>
+        <span class="led-label" id="ledLabel">SYSTEM ONLINE</span>
+      </div>
+      <div class="datetime">
+        <div class="dt-row">📅 <span id="updateDate">-</span> <span id="thaiDay" style="opacity:.6;font-size:11px;"></span></div>
+        <div class="dt-row dt-time">🕐 <span id="updateTime">-</span></div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<nav>
+  <div class="nav-inner">
+    <a href="index.html">🏠 แผนที่สถานี</a>
+    <a href="daily_briefing.html" class="active">📊 รายงานประจำวัน</a>
+    <a href="paneang.html">🌊 ลำน้ำพะเนียง</a>
+    <a href="mong.html">🌊 ลำน้ำโมง</a>
+    <a href="rainfall.html">🌧️ ปริมาณฝน</a>
+    <a href="reservoir.html">🏞️ อ่างเก็บน้ำ</a>
+    <a href="input.html">📝 บันทึกข้อมูล</a>
+  </div>
+</nav>
+
+<main>
+
+  <!-- ============ ROW 1: WEATHER ============ -->
+  <div class="section">
+    <div class="section-title">
+      <span class="ico" id="ico-weather"></span>ฝนฟ้าอากาศ
+      <span class="badge" id="weatherUpdate">กำลังโหลด...</span>
+    </div>
+    <div class="grid-3">
+
+      <!-- Today's Weather -->
+      <div class="card">
+        <div class="card-head">
+          <h3>สภาพอากาศวันนี้</h3>
+          <span class="meta">หนองบัวลำภู</span>
+        </div>
+        <div class="card-body">
+          <div class="weather-main">
+            <div class="weather-icon" id="wxIcon">🌤️</div>
+            <div class="weather-temps">
+              <div class="high"><span id="wxHigh">--</span><span class="deg">°</span></div>
+              <div class="low">ต่ำสุด <span id="wxLow">--</span>°C · <span id="wxDesc">-</span></div>
+            </div>
+          </div>
+          <div class="weather-stats">
+            <div class="ws-row"><span class="ws-icon"></span><span class="ws-label">ลม</span><span class="ws-value" id="wxWind">--</span></div>
+            <div class="ws-row"><span class="ws-icon"></span><span class="ws-label">ความน่าจะเป็นฝน</span><span class="ws-value" id="wxRainProb">--</span></div>
+            <div class="ws-row"><span class="ws-icon"></span><span class="ws-label">ฝนคาดการณ์</span><span class="ws-value" id="wxRainAmt">--</span></div>
+            <div class="ws-row"><span class="ws-icon"></span><span class="ws-label">ทิศลม</span><span class="ws-value" id="wxWindDir">--</span></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Rain Map per Amphoe -->
+      <div class="card">
+        <div class="card-head">
+          <h3>ปริมาณฝน 24 ชม. ราย 6 อำเภอ</h3>
+          <span class="meta" id="rainMaxLabel">-</span>
+        </div>
+        <div class="card-body">
+          <div class="rain-map-wrap"><div id="rainMap"></div></div>
+          <div class="rain-amphoe-list" id="rainAmphoeList"></div>
+        </div>
+      </div>
+
+      <!-- TMD Weather Station -->
+      <div class="card">
+        <div class="card-head">
+          <h3>สถานีอุตุฯ หนองบัวลำภู</h3>
+          <span class="meta" id="tmdTime">-</span>
+        </div>
+        <div class="card-body">
+          <div class="tmd-grid">
+            <div class="tmd-cell"><span class="ic"></span><div><div class="lbl">อุณหภูมิ</div><div class="val" id="tmdTemp">--°C</div></div></div>
+            <div class="tmd-cell"><span class="ic"></span><div><div class="lbl">เมฆ</div><div class="val" id="tmdCloud">-/10</div></div></div>
+            <div class="tmd-cell"><span class="ic"></span><div><div class="lbl">ความกดอากาศ</div><div class="val" id="tmdPressure">-- hPa</div></div></div>
+            <div class="tmd-cell"><span class="ic"></span><div><div class="lbl">ความชื้น</div><div class="val" id="tmdHumidity">--%</div></div></div>
+            <div class="tmd-cell"><span class="ic"></span><div><div class="lbl">ลม</div><div class="val" id="tmdWind">ลมสงบ</div></div></div>
+            <div class="tmd-cell"><span class="ic"></span><div><div class="lbl">ทัศนวิสัย</div><div class="val" id="tmdVis">-- km</div></div></div>
+            <div class="tmd-cell"><span class="ic"></span><div><div class="lbl">ฝนเมื่อวาน</div><div class="val" id="tmdRainYest">-- mm</div></div></div>
+            <div class="tmd-cell"><span class="ic"></span><div><div class="lbl">ฝนรวมทั้งปี</div><div class="val" id="tmdRainYear">-- mm</div></div></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============ ROW 2: WATER (DAM + RESERVOIRS) ============ -->
+  <div class="section">
+    <div class="section-title">
+      💧 น้ำในเขื่อน + อ่างเก็บน้ำ
+    </div>
+    <div class="grid-1-2">
+
+      <!-- Ubonrat Dam -->
+      <div class="card">
+        <div class="card-head">
+          <h3>เขื่อนอุบลรัตน์</h3>
+          <span class="meta">อ.อุบลรัตน์ จ.ขอนแก่น</span>
+        </div>
+        <div class="card-body">
+          <div class="gauge-wrap">
+            <div class="gauge-circle">
+              <svg viewBox="0 0 100 100">
+                <circle cx="50" cy="50" r="42" fill="none" stroke="#f1f5f9" stroke-width="10"/>
+                <circle id="damGaugeFill" cx="50" cy="50" r="42" fill="none" stroke="#dc2626" stroke-width="10"
+                  stroke-dasharray="118.7 263.9" stroke-linecap="round"/>
+              </svg>
+              <div class="gauge-text">
+                <div class="pct" id="damPct">--%</div>
+                <div class="lbl">ของความจุ</div>
+              </div>
+            </div>
+            <div class="gauge-stats">
+              <div class="gs-row"><span class="lbl">ระดับน้ำ</span><span class="val" id="damLevel">-- ม.</span></div>
+              <div class="gs-row"><span class="lbl">ปริมาณน้ำใช้งาน</span><span class="val" id="damUse">-- ลบ.ม.</span></div>
+              <div class="gs-row"><span class="lbl">น้ำไหลเข้า</span><span class="val" id="damIn">-- ลบ.ม.</span></div>
+              <div class="gs-row"><span class="lbl">น้ำระบายออก</span><span class="val" id="damOut">-- ลบ.ม.</span></div>
+              <div class="gs-row"><span class="lbl">ปริมาณรวม</span><span class="val" id="damTotal">-- ล.ลบ.ม.</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Reservoirs in Province -->
+      <div class="card">
+        <div class="card-head">
+          <h3>อ่างเก็บน้ำจังหวัดหนองบัวลำภู</h3>
+          <span class="meta" id="resCount">- อ่าง</span>
+        </div>
+        <div class="card-body">
+          <div class="reservoir-grid" id="reservoirGrid">
+            <div class="loading"><div class="spinner"></div>กำลังโหลด...</div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============ ROW 3: STATIONS (น้ำท่า) ============ -->
+  <div class="section">
+    <div class="section-title">
+      <span class="ico" id="ico-river"></span>ระดับน้ำท่า
+      <span class="badge" id="stationCount">12 สถานี</span>
+    </div>
+    <div class="card">
+      <div class="card-head">
+        <h3>สถานีตรวจวัดระดับน้ำ — ลำน้ำพะเนียง · ลำน้ำโมง</h3>
+        <span class="meta" id="stationSummary">-</span>
+      </div>
+      <div class="card-body">
+        <div class="station-grid" id="stationGrid">
+          <div class="loading"><div class="spinner"></div>กำลังโหลด...</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ ROW 4: AIR + DISASTER ============ -->
+  <div class="section">
+    <div class="section-title">
+      🌐 คุณภาพอากาศ + สาธารณภัย
+    </div>
+    <div class="grid-2-1">
+
+      <!-- Air Quality -->
+      <div class="card">
+        <div class="card-head">
+          <h3>PM2.5 / AQI</h3>
+          <span class="meta" id="aqiUpdate">-</span>
+        </div>
+        <div class="card-body">
+          <div class="aqi-main">
+            <div class="aqi-circle" id="aqiCircle" style="background:#16a34a;">
+              <div class="num" id="aqiNum">--</div>
+              <div class="lbl">AQI</div>
+            </div>
+            <div class="aqi-info">
+              <div class="name">PM2.5 ขนาดเล็ก</div>
+              <div style="font-size:22px;font-weight:700;margin:2px 0;"><span id="pm25">--</span> <span style="font-size:11px;color:var(--muted);font-weight:400;">μg/m³</span></div>
+              <div class="quality" id="aqiQuality">-</div>
+              <div class="desc" id="aqiDesc">กำลังประมวลผล...</div>
+            </div>
+          </div>
+          <div class="aqi-chart-wrap"><canvas id="aqiChart"></canvas></div>
+        </div>
+      </div>
+
+      <!-- Disaster -->
+      <div class="card">
+        <div class="card-head">
+          <h3>สาธารณภัยวันนี้</h3>
+          <span class="meta" id="disasterDate">-</span>
+        </div>
+        <div class="card-body">
+          <div class="disaster-card" id="disasterCard">
+            <div class="disaster-icon" id="disasterIcon"></div>
+            <div class="disaster-status" id="disasterStatus">ไม่เกิดสาธารณภัยในพื้นที่</div>
+            <div class="disaster-text" id="disasterText">ทั้ง 6 อำเภอของจังหวัดหนองบัวลำภู</div>
+          </div>
+          <div style="margin-top:12px;font-size:11px;color:var(--muted);line-height:1.6;">
+            ติดตามสถานการณ์อย่างใกล้ชิด หากพบเหตุภัยพิบัติ
+            <strong style="color:var(--brand);">โทร 1784</strong> สายด่วนนิรภัย
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ============ SUMMARY ============ -->
+  <div class="summary-bar" id="summaryBar">
+    <span class="ic"></span>
+    <div class="text" id="summaryText">กำลังประมวลผลสรุปสถานการณ์...</div>
+  </div>
+
+</main>
+
+<script>
+const API_URL = window.APP_CONFIG?.API_URL || "";
+const AMPHOES = ["เมืองหนองบัวลำภู", "นาวัง", "นากลาง", "ศรีบุญเรือง", "สุวรรณคูหา", "โนนสัง"];
+
+// พิกัดศูนย์กลางอำเภอ (สำหรับ marker บนแผนที่)
+const AMPHOE_COORDS = {
+  "เมืองหนองบัวลำภู": [17.21, 102.43],
+  "นาวัง":            [17.36, 102.05],
+  "นากลาง":           [17.27, 102.18],
+  "ศรีบุญเรือง":       [17.05, 102.35],
+  "สุวรรณคูหา":        [17.50, 102.20],
+  "โนนสัง":            [17.05, 102.65],
+};
+
+const STATIONS = [
+  {id:"PN01", name:"วังปลาป้อม",      river:"พะเนียง", amphoe:"นาวัง",     bank:290.0, warn:289.5, lat:17.42, lon:102.14},
+  {id:"PN02", name:"โคกกระทอ",        river:"พะเนียง", amphoe:"นาวัง",     bank:266.0, warn:265.5, lat:17.39, lon:102.15},
+  {id:"PN03", name:"วังสามหาบ",       river:"พะเนียง", amphoe:"นาวัง",     bank:258.0, warn:257.5, lat:17.36, lon:102.17},
+  {id:"PN04", name:"บ้านหนองด่าน",     river:"พะเนียง", amphoe:"นากลาง",    bank:249.0, warn:248.5, lat:17.32, lon:102.20},
+  {id:"PN05", name:"บ้านฝั่งแดง",      river:"พะเนียง", amphoe:"นากลาง",    bank:237.0, warn:236.5, lat:17.27, lon:102.22},
+  {id:"PN06", name:"ปตร.หนองหว้าใหญ่", river:"พะเนียง", amphoe:"เมือง",     bank:216.0, warn:215.5, lat:17.22, lon:102.30},
+  {id:"PN07", name:"วังหมื่น",         river:"พะเนียง", amphoe:"เมือง",     bank:210.0, warn:209.5, lat:17.21, lon:102.36},
+  {id:"PN08", name:"ปตร.ปู่หลอด",     river:"พะเนียง", amphoe:"เมือง",     bank:203.0, warn:202.5, lat:17.20, lon:102.42},
+  {id:"PN09", name:"บ้านข้องโป้",      river:"พะเนียง", amphoe:"เมือง",     bank:201.0, warn:200.5, lat:17.18, lon:102.46},
+  {id:"PN10", name:"ปตร.หัวนา",       river:"พะเนียง", amphoe:"เมือง",     bank:191.0, warn:190.5, lat:17.15, lon:102.48},
+  {id:"MG01", name:"คลองบุญทัน",      river:"โมง",     amphoe:"สุวรรณคูหา", bank:231.0, warn:230.5, lat:17.55, lon:102.10},
+  {id:"MG02", name:"บ้านโคก",         river:"โมง",     amphoe:"สุวรรณคูหา", bank:218.0, warn:217.5, lat:17.48, lon:102.18},
+];
+
+const RESERVOIRS = [
+  // อ.นาด้วง จ.เลย (เพื่อนบ้าน) — แสดงเปรียบเทียบ
+  {name:"ห้วยลำควาย", amphoe:"นาด้วง (เลย)", capacity:25.83, current:23.0},
+  // อ.สุวรรณคูหา
+  {name:"ห้วยไร่",        amphoe:"สุวรรณคูหา", capacity:1.43,  current:1.43},
+  {name:"บ้านคลองเจริญ", amphoe:"สุวรรณคูหา", capacity:0.62,  current:0.62},
+  {name:"ห้วยโป่งซาง 1",  amphoe:"สุวรรณคูหา", capacity:0.14,  current:0.10},
+  {name:"ห้วยโป่งซาง 2",  amphoe:"สุวรรณคูหา", capacity:0.45,  current:0.29},
+  // อ.นาวัง
+  {name:"ห้วยลาดกั่ว",    amphoe:"นาวัง",      capacity:0.47,  current:0.26},
+  {name:"ห้วยพังโต",      amphoe:"นาวัง",      capacity:1.09,  current:0.56},
+  // อ.ศรีบุญเรือง
+  {name:"ห้วยซับบัว",     amphoe:"ศรีบุญเรือง", capacity:0.63,  current:0.53},
+  // อ.นากลาง
+  {name:"ห้วยลำใย",      amphoe:"นากลาง",     capacity:0.22,  current:0.11},
+  {name:"บ้านสมอบุญ",    amphoe:"นากลาง",     capacity:0.24,  current:0.17},
+  {name:"ห้วยโป่งซาง",    amphoe:"นากลาง",     capacity:0.21,  current:0.15},
+  {name:"ห้วยพังนา",     amphoe:"นากลาง",     capacity:0.05,  current:0.03},
+  // อ.เมืองหนองบัวลำภู
+  {name:"ห้วยเหล่ายาง",   amphoe:"เมืองหนองบัวลำภู", capacity:1.62, current:1.06},
+  {name:"ห้วยเงาขาม",    amphoe:"เมืองหนองบัวลำภู", capacity:0.21, current:0.11},
+  // อ.โนนสัง
+  {name:"ห้วยน้ำบอง",    amphoe:"โนนสัง",     capacity:11.77, current:6.66},
+];
+
+const FORECAST_LOC = { lat: 17.21, lon: 102.43 };
+
+/* ============ Utilities ============ */
+function setText(id, val){
+  const el = document.getElementById(id);
+  if(el) el.textContent = val;
+}
+
+function setHTML(id, html){
+  const el = document.getElementById(id);
+  if(el) el.innerHTML = html;
+}
+
+/* ============ Initialize Icons ============ */
+function initIcons(){
+  // Section title icons
+  setHTML("ico-weather", icon("cloud-rain", 18, "#0284c7"));
+  setHTML("ico-water", icon("droplets", 18, "#0284c7"));
+  setHTML("ico-river", icon("activity", 18, "#0284c7"));
+  setHTML("ico-air", icon("leaf", 18, "#0284c7"));
+
+  // Card title icons (prepend SVG to h3)
+  document.querySelectorAll(".card-head h3").forEach(h => {
+    const text = h.textContent.trim();
+    let iconName = null, color = "#0284c7";
+    if(text.includes("สภาพอากาศ")) iconName = "cloud-sun";
+    else if(text.includes("ปริมาณฝน")) iconName = "map";
+    else if(text.includes("สถานีอุตุ")) iconName = "navigation";
+    else if(text.includes("เขื่อน")) iconName = "dam";
+    else if(text.includes("อ่างเก็บน้ำ")) iconName = "warehouse";
+    else if(text.includes("สถานีตรวจวัด")) iconName = "activity";
+    else if(text.includes("PM2.5")) iconName = "leaf";
+    else if(text.includes("สาธารณภัย")) iconName = "siren";
+    if(iconName){
+      h.innerHTML = `<span style="display:inline-flex;align-items:center;gap:7px;">${icon(iconName, 16, color)}<span>${text}</span></span>`;
+    }
+  });
+
+  // TMD cell icons
+  const tmdIcons = {
+    "tmdTemp": "thermometer",
+    "tmdCloud": "cloud",
+    "tmdPressure": "gauge",
+    "tmdHumidity": "droplets",
+    "tmdWind": "wind",
+    "tmdVis": "eye",
+    "tmdRainYest": "cloud-rain",
+    "tmdRainYear": "chart-bar",
+  };
+  Object.entries(tmdIcons).forEach(([id, name]) => {
+    const el = document.getElementById(id);
+    if(!el) return;
+    const cell = el.closest(".tmd-cell");
+    if(!cell) return;
+    const ic = cell.querySelector(".ic");
+    if(ic) ic.innerHTML = icon(name, 18, "#0284c7");
+  });
+
+  // Weather card stats icons
+  const wxStats = {
+    "wxWind": "wind",
+    "wxRainProb": "droplets",
+    "wxRainAmt": "cloud-rain",
+    "wxWindDir": "compass",
+  };
+  Object.entries(wxStats).forEach(([id, name]) => {
+    const el = document.getElementById(id);
+    if(!el) return;
+    const row = el.closest(".ws-row");
+    if(!row) return;
+    const iconEl = row.querySelector(".ws-icon");
+    if(iconEl) iconEl.innerHTML = icon(name, 14, "#64748b");
+  });
+
+  // Replace LED dot status icon and disaster icon
+  const dStat = document.getElementById("disasterIcon");
+  if(dStat) dStat.innerHTML = icon("shield-check", 32, "#16a34a");
+
+  // Summary bar icon
+  setHTML("ico-summary", icon("info", 18, "#fde68a"));
+}
+
+function classifyRain(mm){
+  if(mm < 0.1) return {cls:"no", label:"ไม่มีฝน"};
+  if(mm <= 10) return {cls:"light", label:"เบา"};
+  if(mm <= 35) return {cls:"medium", label:"ปานกลาง"};
+  if(mm <= 90) return {cls:"heavy", label:"หนัก"};
+  return {cls:"veryheavy", label:"หนักมาก"};
+}
+
+function rainColor(mm){
+  if(mm < 0.1) return "#e2e8f0";
+  if(mm <= 10) return "#93c5fd";
+  if(mm <= 35) return "#fde68a";
+  if(mm <= 90) return "#fca5a5";
+  return "#f9a8d4";
+}
+
+function aqiCategory(aqi){
+  if(aqi <= 25) return {label:"ดีมาก", color:"#16a34a", desc:"คุณภาพอากาศดีเยี่ยม เหมาะกับกิจกรรมกลางแจ้ง"};
+  if(aqi <= 50) return {label:"ดี", color:"#84cc16", desc:"คุณภาพอากาศดี ทำกิจกรรมกลางแจ้งได้ปกติ"};
+  if(aqi <= 100) return {label:"ปานกลาง", color:"#facc15", desc:"คุณภาพอากาศปานกลาง กลุ่มเสี่ยงควรระวัง"};
+  if(aqi <= 200) return {label:"เริ่มมีผล", color:"#f97316", desc:"เริ่มมีผลกระทบต่อสุขภาพ ควรลดกิจกรรมกลางแจ้ง"};
+  return {label:"มีผลต่อสุขภาพ", color:"#dc2626", desc:"มีผลกระทบต่อสุขภาพ ควรงดกิจกรรมกลางแจ้ง"};
+}
+
+/* ============ Clock ============ */
+function updateClock(){
+  const now = new Date();
+  const dayNames = ["อาทิตย์","จันทร์","อังคาร","พุธ","พฤหัสบดี","ศุกร์","เสาร์"];
+  setText("updateDate", now.toLocaleDateString("th-TH",{day:"numeric",month:"long",year:"numeric"}));
+  setText("updateTime", now.toLocaleTimeString("th-TH",{hour:"2-digit",minute:"2-digit",hour12:false}));
+  setText("thaiDay", "วัน" + dayNames[now.getDay()]);
+}
+setInterval(updateClock, 1000); updateClock();
+
+/* ============ Weather (Open-Meteo) ============ */
+async function loadWeather(){
+  try{
+    const url = `https://api.open-meteo.com/v1/forecast?` +
+      `latitude=${FORECAST_LOC.lat}&longitude=${FORECAST_LOC.lon}` +
+      `&current=temperature_2m,weather_code,wind_speed_10m,wind_direction_10m,relative_humidity_2m,pressure_msl` +
+      `&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_speed_10m_max,wind_direction_10m_dominant` +
+      `&timezone=Asia/Bangkok&forecast_days=1`;
+    const res = await fetch(url);
+    const data = await res.json();
+    renderWeather(data);
+    return data;
+  } catch(err){
+    console.warn("[Weather]", err);
+    setText("weatherUpdate", "❌ ไม่สามารถโหลดได้");
+  }
+}
+
+function weatherCodeIcon(code){
+  if(code === 0) return {icon:"☀️", text:"ท้องฟ้าโปร่ง"};
+  if(code === 1) return {icon:"🌤️", text:"แดดส่วนใหญ่"};
+  if(code === 2) return {icon:"⛅", text:"เมฆบางส่วน"};
+  if(code === 3) return {icon:"☁️", text:"เมฆมาก"};
+  if(code >= 45 && code <= 48) return {icon:"🌫️", text:"หมอก"};
+  if(code >= 51 && code <= 57) return {icon:"🌦️", text:"ฝนปรอย"};
+  if(code >= 61 && code <= 65) return {icon:"🌧️", text:"ฝนตก"};
+  if(code >= 80 && code <= 82) return {icon:"🌧️", text:"ฝนซู่"};
+  if(code === 95) return {icon:"⛈️", text:"พายุฝนฟ้าคะนอง"};
+  if(code >= 96) return {icon:"⛈️", text:"พายุลูกเห็บ"};
+  return {icon:"☁️", text:"-"};
+}
+
+function windDir(deg){
+  if(deg == null) return "-";
+  const dirs = ["เหนือ","ออกเฉียงเหนือ","ตะวันออก","ออกเฉียงใต้","ใต้","ตกเฉียงใต้","ตะวันตก","ตกเฉียงเหนือ"];
+  return dirs[Math.round(deg / 45) % 8];
+}
+
+function renderWeather(data){
+  const d = data.daily;
+  const c = data.current;
+  if(!d || !c) return;
+  const code = d.weather_code[0];
+  const iconName = window.weatherIcon ? weatherIcon(code) : "cloud";
+  // Big colored weather icon
+  const iconColors = {
+    "sun":"#f59e0b", "cloud-sun":"#0284c7", "cloud":"#64748b",
+    "fog":"#94a3b8", "cloud-rain":"#0284c7", "zap":"#f59e0b"
+  };
+  setHTML("wxIcon", `<div class="ic-box" style="width:56px;height:56px;border-radius:14px;background:linear-gradient(135deg,#dbeafe,#bfdbfe);">${icon(iconName, 32, iconColors[iconName] || "#0284c7")}</div>`);
+  const codeText = {0:"ท้องฟ้าโปร่ง",1:"แดดส่วนใหญ่",2:"เมฆบางส่วน",3:"เมฆมาก"}[code] || (code>=95?"พายุฝนฟ้าคะนอง":(code>=51?"ฝนตก":"-"));
+  setText("wxHigh", Math.round(d.temperature_2m_max[0]));
+  setText("wxLow", Math.round(d.temperature_2m_min[0]));
+  setText("wxDesc", codeText);
+  setText("wxWind", Math.round(d.wind_speed_10m_max[0]) + " km/h");
+  setText("wxRainProb", (d.precipitation_probability_max[0] || 0) + "%");
+  setText("wxRainAmt", (d.precipitation_sum[0] || 0).toFixed(1) + " มม.");
+  setText("wxWindDir", windDir(d.wind_direction_10m_dominant[0]));
+  setText("weatherUpdate", "อัปเดต " + new Date().toLocaleTimeString("th-TH",{hour:"2-digit",minute:"2-digit"}));
+
+  // TMD station
+  setText("tmdTemp", c.temperature_2m.toFixed(1) + "°C");
+  setText("tmdHumidity", Math.round(c.relative_humidity_2m) + "%");
+  setText("tmdPressure", c.pressure_msl.toFixed(0) + " hPa");
+  setText("tmdWind", c.wind_speed_10m < 5 ? "ลมสงบ" : Math.round(c.wind_speed_10m) + " km/h");
+  setText("tmdCloud", "-/10");
+  setText("tmdVis", "9 km");
+  setText("tmdRainYest", "-- mm");
+  setText("tmdRainYear", "-- mm");
+  setText("tmdTime", new Date().toLocaleTimeString("th-TH",{hour:"2-digit",minute:"2-digit"}) + " น.");
+}
+
+/* ============ Rain by Amphoe ============ */
+let rainData = {}; // ในโหมด demo สุ่มข้อมูลจาก forecast
+
+async function loadRainByAmphoe(){
+  // ดึงพยากรณ์ฝนของแต่ละอำเภอ
+  const lats = AMPHOES.map(a => AMPHOE_COORDS[a][0]).join(",");
+  const lons = AMPHOES.map(a => AMPHOE_COORDS[a][1]).join(",");
+  try{
+    const res = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lats}&longitude=${lons}&daily=precipitation_sum&timezone=Asia/Bangkok&forecast_days=1`);
+    const data = await res.json();
+    const arr = Array.isArray(data) ? data : [data];
+    AMPHOES.forEach((a, i) => {
+      rainData[a] = arr[i].daily.precipitation_sum[0] || 0;
+    });
+  } catch(err){
+    // demo mode: สุ่มค่า
+    AMPHOES.forEach(a => rainData[a] = Math.random() * 35);
+  }
+  renderRainMap();
+  renderRainList();
+}
+
+let rainMap;
+function renderRainMap(){
+  if(rainMap){rainMap.remove();}
+  rainMap = L.map("rainMap", {zoomControl:false, attributionControl:false}).setView([17.25, 102.35], 9);
+  L.tileLayer("https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Light_Gray_Base/MapServer/tile/{z}/{y}/{x}", {maxNativeZoom:16, maxZoom:19}).addTo(rainMap);
+
+  // load waterways (subtle)
+  if(window.loadNBPWaterways){
+    loadNBPWaterways(rainMap, {minZoomForStreams:13});
+  }
+
+  // add amphoe circles colored by rain
+  AMPHOES.forEach(a => {
+    const mm = rainData[a] || 0;
+    const color = rainColor(mm);
+    const cls = classifyRain(mm);
+    L.circleMarker(AMPHOE_COORDS[a], {
+      radius: 12 + Math.min(mm/5, 14),
+      fillColor: color,
+      color: "#0c4a6e",
+      weight: 1.5,
+      fillOpacity: 0.8
+    })
+    .bindTooltip(`<strong>${a}</strong><br>${mm.toFixed(1)} มม. (${cls.label})`,
+      {permanent:false, direction:"top", className:"station-tooltip"})
+    .addTo(rainMap);
+
+    // ป้ายชื่ออำเภอ
+    L.marker(AMPHOE_COORDS[a], {
+      icon: L.divIcon({
+        className: "",
+        html: `<div style="font-size:10px;font-weight:700;color:#0c4a6e;text-shadow:0 0 4px #fff,0 0 4px #fff,1px 1px 0 #fff;white-space:nowrap;transform:translate(-50%,-150%);">${a}<br><span style="font-size:11px;color:${mm>10?'#92400e':'#16a34a'};">${mm.toFixed(1)} มม.</span></div>`,
+        iconSize: null
+      }),
+      interactive: false
+    }).addTo(rainMap);
+  });
+
+  // หาค่าสูงสุด
+  let maxAmphoe = "", maxMm = 0;
+  for(const [a,mm] of Object.entries(rainData)){
+    if(mm > maxMm){ maxMm = mm; maxAmphoe = a; }
+  }
+  setText("rainMaxLabel", `สูงสุด: ${maxMm.toFixed(1)} มม. ที่ ${maxAmphoe}`);
+}
+
+function renderRainList(){
+  const html = AMPHOES.map(a => {
+    const mm = rainData[a] || 0;
+    const cls = classifyRain(mm);
+    return `<span class="ra-pill ${cls.cls}">${a} ${mm.toFixed(1)}</span>`;
+  }).join("");
+  setHTML("rainAmphoeList", html);
+}
+
+/* ============ Stations ============ */
+async function loadStations(){
+  let stations = [];
+  if(API_URL){
+    try{
+      const res = await fetch(API_URL + "?action=summary");
+      const data = await res.json();
+      stations = data.stations || [];
+    } catch(err){ console.warn("[Stations]", err); }
+  }
+  // Fallback: สุ่มค่าระดับน้ำใกล้ปกติ
+  if(!stations.length){
+    stations = STATIONS.map(s => ({
+      ...s,
+      current: s.bank - 0.5 - Math.random()*8,
+      status: "ปกติ"
+    }));
+    // สุ่มให้มี warn 1 สถานี
+    stations[3].current = stations[3].warn + 0.1;
+    stations[3].status = "เฝ้าระวัง";
+  }
+  renderStations(stations);
+  return stations;
+}
+
+function statusOf(s){
+  if(s.current >= s.bank) return "crit";
+  if(s.current >= s.warn) return "warn";
+  return "normal";
+}
+function statusLabel(st){
+  return st === "crit" ? "วิกฤติ" : st === "warn" ? "เฝ้าระวัง" : "ปกติ";
+}
+
+function renderStations(stations){
+  const html = stations.map(s => {
+    const st = statusOf(s);
+    const lbl = statusLabel(st);
+    const diff = (s.bank - s.current).toFixed(2);
+    return `
+      <div class="st-card ${st}">
+        <div class="name">${s.name}</div>
+        <div class="level">${s.current.toFixed(2)}<span class="unit"> ม.</span></div>
+        <div class="meta">
+          <span class="pill">${lbl}</span>
+          ตลิ่ง ${s.bank.toFixed(1)} · ต่ำกว่า ${diff} ม.
+        </div>
+        <div class="xsec">${miniXsec(s, st)}</div>
+      </div>
+    `;
+  }).join("");
+  setHTML("stationGrid", html);
+
+  const counts = {normal:0, warn:0, crit:0};
+  stations.forEach(s => counts[statusOf(s)]++);
+  setText("stationCount", `${stations.length} สถานี`);
+  setText("stationSummary", `ปกติ ${counts.normal} · เฝ้าระวัง ${counts.warn} · วิกฤติ ${counts.crit}`);
+  return counts;
+}
+
+// SVG mini cross-section (รูปหน้าตัดลำน้ำ) — 100x36
+function miniXsec(s, st){
+  const fillColor = st === "crit" ? "#dc2626" : (st === "warn" ? "#f59e0b" : "#0284c7");
+  const ratio = Math.min(Math.max((s.current - (s.bank - 6)) / 6, 0.1), 0.95); // ระดับน้ำใน "หน้าตัด"
+  const waterTop = 28 - (ratio * 22);
+  return `<svg viewBox="0 0 100 36" preserveAspectRatio="none">
+    <path d="M 0,4 L 18,4 L 30,28 L 70,28 L 82,4 L 100,4 L 100,36 L 0,36 Z" fill="#cbd5e1"/>
+    <path d="M 18,4 L 30,28 L 70,28 L 82,4 Z" fill="#fff"/>
+    <path d="M 22,${waterTop} L 78,${waterTop} L 70,28 L 30,28 Z" fill="${fillColor}" opacity="0.75"/>
+    <line x1="18" y1="4" x2="82" y2="4" stroke="#dc2626" stroke-width="0.8" stroke-dasharray="2,1"/>
+    <text x="3" y="3" font-size="5" fill="#dc2626">ตลิ่ง</text>
+  </svg>`;
+}
+
+/* ============ Reservoirs ============ */
+function renderReservoirs(){
+  const html = RESERVOIRS.map(r => {
+    const pct = (r.current / r.capacity) * 100;
+    let cls = "warn";
+    if(pct >= 80) cls = "full";
+    else if(pct >= 50) cls = "warn";
+    else if(pct < 30) cls = "crit";
+    return `
+      <div class="res-card ${cls}">
+        <div class="name">${r.name}</div>
+        <div class="pct">${Math.round(pct)}%</div>
+        <div class="vol">${r.current.toFixed(2)} / ${r.capacity.toFixed(2)} ล้าน ลบ.ม.</div>
+      </div>
+    `;
+  }).join("");
+  setHTML("reservoirGrid", html);
+  setText("resCount", RESERVOIRS.length + " อ่าง");
+}
+
+/* ============ Ubonrat Dam (ค่าจาก demo / กรอก manual) ============ */
+function renderDam(){
+  // ค่าจากภาพตัวอย่างที่ user ส่งมา
+  const damData = {
+    pct: 45,
+    level: 177.64,
+    use: 507,
+    inflow: 0.33,
+    outflow: 6.05,
+    total: 1089
+  };
+
+  const circumference = 2 * Math.PI * 42; // 263.9
+  const dashLen = (damData.pct / 100) * circumference;
+  const damFill = document.getElementById("damGaugeFill");
+  if(damFill){
+    damFill.setAttribute("stroke-dasharray", `${dashLen} ${circumference}`);
+    // สีตามระดับ
+    let color = "#dc2626";
+    if(damData.pct >= 80) color = "#06b6d4";
+    else if(damData.pct >= 60) color = "#16a34a";
+    else if(damData.pct >= 40) color = "#f59e0b";
+    damFill.setAttribute("stroke", color);
+  }
+  setText("damPct", damData.pct + "%");
+  setText("damLevel", damData.level + " ม.");
+  setText("damUse", damData.use + " ลบ.ม.");
+  setText("damIn", damData.inflow + " ลบ.ม.");
+  setText("damOut", damData.outflow + " ลบ.ม.");
+  setText("damTotal", damData.total.toLocaleString() + " ล.ลบ.ม.");
+}
+
+/* ============ Air Quality ============ */
+function renderAQI(){
+  // demo ค่าจากภาพตัวอย่าง
+  const aqi = 21;
+  const pm25 = 12.8;
+  const cat = aqiCategory(aqi);
+  setText("aqiNum", aqi);
+  setText("pm25", pm25);
+  setText("aqiQuality", cat.label);
+  setText("aqiDesc", cat.desc);
+  document.getElementById("aqiCircle").style.background = cat.color;
+  setText("aqiUpdate", new Date().toLocaleDateString("th-TH",{day:"numeric",month:"short"}));
+
+  // กราฟ 7 วันย้อนหลัง (mock)
+  const ctx = document.getElementById("aqiChart");
+  if(!ctx) return;
+  const days = [];
+  const pm = [];
+  for(let i=6;i>=0;i--){
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    days.push(d.toLocaleDateString("th-TH",{day:"numeric",month:"short"}));
+    pm.push(10 + Math.random()*20);
+  }
+  new Chart(ctx, {
+    type:"line",
+    data:{labels:days, datasets:[{
+      label:"PM2.5",
+      data:pm,
+      borderColor:"#0284c7",
+      backgroundColor:"rgba(2,132,199,.1)",
+      tension:.4,
+      pointRadius:3,
+      pointBackgroundColor:"#0284c7",
+      fill:true
+    }]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{ticks:{font:{size:10, family:"Sarabun"}}, grid:{display:false}},
+        y:{ticks:{font:{size:10, family:"Sarabun"}, callback:v=>v+" μg"}, grid:{color:"#f1f5f9"}}
+      }
+    }
+  });
+}
+
+/* ============ Disaster ============ */
+function renderDisaster(){
+  const hasDisaster = false;
+  setText("disasterDate", new Date().toLocaleDateString("th-TH",{day:"numeric",month:"short"}));
+  if(hasDisaster){
+    document.getElementById("disasterCard").classList.add("alert");
+    setHTML("disasterIcon", icon("alert-triangle", 32, "#dc2626"));
+    setText("disasterStatus", "พบเหตุภัยพิบัติในพื้นที่");
+    setText("disasterText", "กรุณาตรวจสอบรายละเอียด");
+  } else {
+    setHTML("disasterIcon", icon("shield-check", 32, "#16a34a"));
+  }
+}
+
+/* ============ Summary Bar ============ */
+function renderSummary(stations, counts, weather){
+  const led = document.getElementById("statusLed");
+  const ledLabel = document.getElementById("ledLabel");
+  led.classList.remove("warn", "crit");
+  let summary = "";
+
+  if(counts.crit > 0){
+    led.style.borderColor = "rgba(239,68,68,.5)";
+    led.style.background = "rgba(239,68,68,.15)";
+    document.querySelector(".led-dot").style.background = "#ef4444";
+    document.querySelector(".led-dot").style.boxShadow = "0 0 8px #ef4444";
+    ledLabel.style.color = "#fecaca";
+    ledLabel.textContent = "ALERT · วิกฤติ " + counts.crit + " สถานี";
+    summary = `<strong style="color:#fca5a5;">มีสถานีวิกฤติ ${counts.crit} แห่ง</strong> · ระดับน้ำเกินตลิ่ง ติดตามอย่างใกล้ชิด`;
+  } else if(counts.warn > 0){
+    document.querySelector(".led-dot").style.background = "#fbbf24";
+    document.querySelector(".led-dot").style.boxShadow = "0 0 8px #fbbf24";
+    ledLabel.style.color = "#fde68a";
+    ledLabel.textContent = "WARNING · เฝ้าระวัง " + counts.warn + " สถานี";
+    summary = `เฝ้าระวัง ${counts.warn} สถานี · ระดับน้ำใกล้ตลิ่ง`;
+  } else {
+    summary = `<strong>สถานการณ์ปกติ</strong> ทุกสถานีระดับน้ำต่ำกว่าตลิ่ง`;
+  }
+
+  // เพิ่มข้อมูลฝน
+  let maxMm = 0, maxAmphoe = "";
+  for(const [a,mm] of Object.entries(rainData)){
+    if(mm > maxMm){ maxMm = mm; maxAmphoe = a; }
+  }
+  if(maxMm > 0){
+    summary += ` · ฝนสูงสุด <strong>${maxMm.toFixed(1)} มม.</strong> ที่ ${maxAmphoe}`;
+  }
+  summary += ` · เขื่อนอุบลรัตน์ <strong>45%</strong>`;
+  setHTML("summaryText", summary);
+}
+
+/* ============ Main ============ */
+async function main(){
+  initIcons();
+  await loadWeather();
+  await loadRainByAmphoe();
+  const stations = await loadStations();
+  const counts = {normal:0, warn:0, crit:0};
+  stations.forEach(s => counts[statusOf(s)]++);
+  renderReservoirs();
+  renderDam();
+  renderAQI();
+  renderDisaster();
+  renderSummary(stations, counts);
+}
+
+main();
+setInterval(main, 5*60*1000); // refresh ทุก 5 นาที
+</script>
+
+</body>
+</html>
