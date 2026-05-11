@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🔧 ทดสอบ API · ระบบน้ำหนองบัวลำภู</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="config.js"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;font-family:'Sarabun',sans-serif;}
+body{background:#0f172a;color:#e2e8f0;padding:20px;max-width:1100px;margin:0 auto;line-height:1.5;}
+h1{font-size:22px;margin-bottom:6px;color:#7dd3fc;}
+.sub{font-size:13px;color:#94a3b8;margin-bottom:18px;}
+.cfg{background:#1e293b;border:1px solid #334155;border-radius:8px;padding:14px;margin-bottom:18px;}
+.cfg label{display:block;font-size:11px;color:#94a3b8;margin-bottom:4px;letter-spacing:.3px;}
+.cfg input{width:100%;padding:8px 12px;background:#0f172a;border:1px solid #475569;border-radius:6px;color:#fff;font-family:monospace;font-size:12px;margin-bottom:10px;}
+.cfg input:last-child{margin-bottom:0;}
+.section{background:#1e293b;border:1px solid #334155;border-radius:8px;margin-bottom:14px;overflow:hidden;}
+.s-hdr{padding:10px 14px;background:#334155;font-weight:700;font-size:13px;display:flex;align-items:center;gap:10px;}
+.s-hdr .badge{font-size:10px;padding:2px 7px;border-radius:8px;background:#475569;}
+.s-hdr .badge.r{background:#0ea5e9;}
+.s-hdr .badge.w{background:#f59e0b;}
+.s-body{padding:14px;}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:8px;}
+.row input,.row select{padding:6px 10px;background:#0f172a;border:1px solid #475569;border-radius:5px;color:#fff;font-size:12px;font-family:monospace;flex:1;min-width:90px;}
+.row input[type=number]{flex:0 0 100px;}
+button{padding:7px 14px;background:#0ea5e9;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600;font-size:12px;}
+button:hover{background:#0284c7;}
+button.w{background:#f59e0b;}
+button.w:hover{background:#d97706;}
+button:disabled{background:#475569;cursor:not-allowed;}
+pre{background:#0f172a;border:1px solid #334155;border-radius:6px;padding:10px;margin-top:8px;font-size:11px;overflow:auto;max-height:280px;color:#a3e635;font-family:'Courier New',monospace;line-height:1.45;white-space:pre-wrap;word-break:break-word;}
+.status{font-size:11px;padding:2px 8px;border-radius:8px;margin-left:auto;font-weight:700;}
+.s-ok{background:#16a34a;color:#fff;}
+.s-err{background:#dc2626;color:#fff;}
+.s-wait{background:#64748b;color:#fff;}
+.hint{font-size:11px;color:#94a3b8;margin-top:6px;line-height:1.5;}
+.kbd{background:#334155;border:1px solid #475569;padding:1px 6px;border-radius:4px;font-family:monospace;font-size:10.5px;}
+.summary{background:#0f172a;border:2px solid #475569;border-radius:8px;padding:14px;margin-top:16px;font-size:12px;line-height:1.7;}
+.summary h3{font-size:14px;color:#fbbf24;margin-bottom:8px;}
+.summary ul{list-style:none;padding:0;}
+.summary li{padding:5px 0;border-bottom:1px solid #1e293b;display:flex;gap:10px;}
+.summary li:last-child{border:none;}
+.summary li .lbl{flex:0 0 180px;color:#94a3b8;}
+.summary li .v{color:#fff;}
+.summary li .v.ok{color:#86efac;}
+.summary li .v.err{color:#fca5a5;}
+</style>
+</head>
+<body>
+
+<h1>🔧 ทดสอบการเชื่อมโยง input.html ↔ Dashboards</h1>
+<div class="sub">เครื่องมือนี้จะทดสอบทุก action ใน Code.gs เพื่อหาว่าทำไม dashboard ไม่แสดงข้อมูลที่กรอกผ่าน input.html</div>
+
+<div class="cfg">
+  <label>API_URL (จาก config.js)</label>
+  <input id="apiUrl" placeholder="https://script.google.com/macros/s/.../exec" />
+  <label>PIN (สำหรับทดสอบเขียนข้อมูล)</label>
+  <input id="pin" type="password" placeholder="ใส่ PIN" />
+  <div class="hint">💡 ถ้า config.js ตั้งค่าไว้แล้ว ช่อง API_URL จะกรอกอัตโนมัติ</div>
+</div>
+
+<!-- TEST 1: READ ENDPOINTS -->
+<div class="section">
+  <div class="s-hdr">
+    <span class="badge r">READ</span>
+    <span>1. ทดสอบอ่านข้อมูลทุก action</span>
+    <span class="status s-wait" id="s1">รอ</span>
+  </div>
+  <div class="s-body">
+    <div class="hint">กดปุ่มเพื่อทดสอบทีเดียวทั้ง 7 actions ที่ dashboard ใช้</div>
+    <button onclick="testAllReads()" style="margin-top:8px;">▶️ ทดสอบทั้งหมด</button>
+    <pre id="out1">รอผลทดสอบ...</pre>
+  </div>
+</div>
+
+<!-- TEST 2: WRITE WATER -->
+<div class="section">
+  <div class="s-hdr">
+    <span class="badge w">WRITE</span>
+    <span>2. ทดสอบบันทึกระดับน้ำ (savewater)</span>
+    <span class="status s-wait" id="s2">รอ</span>
+  </div>
+  <div class="s-body">
+    <div class="row">
+      <select id="wSt">
+        <option value="PN01">PN01 วังปลาป้อม</option>
+        <option value="PN06">PN06 ปตร.หนองหว้าใหญ่</option>
+        <option value="MG01">MG01 คลองบุญทัน</option>
+      </select>
+      <input type="number" id="wLv" placeholder="ระดับน้ำ" value="288.50" step="0.01">
+      <input id="wUser" placeholder="ผู้บันทึก" value="ทดสอบระบบ">
+      <button class="w" onclick="testWriteWater()">บันทึก & ตรวจ</button>
+    </div>
+    <div class="hint">หลังบันทึกจะอ่าน <span class="kbd">action=summary</span> ทันทีเพื่อดูว่ามีค่าใหม่ปรากฏหรือไม่</div>
+    <pre id="out2">รอผลทดสอบ...</pre>
+  </div>
+</div>
+
+<!-- TEST 3: WRITE RESERVOIR -->
+<div class="section">
+  <div class="s-hdr">
+    <span class="badge w">WRITE</span>
+    <span>3. ทดสอบบันทึกอ่างเก็บน้ำ (savereservoir)</span>
+    <span class="status s-wait" id="s3">รอ</span>
+  </div>
+  <div class="s-body">
+    <div class="row">
+      <select id="rRes">
+        <option value="R01">R01 ห้วยยางเงาะ (0.400)</option>
+        <option value="R04">R04 อ่างน้ำบอง (20.800)</option>
+        <option value="R03">R03 ห้วยเหล่ายาง (2.469)</option>
+      </select>
+      <input type="number" id="rVol" placeholder="ปริมาณ" value="0.250" step="0.001">
+      <input id="rUser" placeholder="ผู้บันทึก" value="ทดสอบระบบ">
+      <button class="w" onclick="testWriteRes()">บันทึก & ตรวจ</button>
+    </div>
+    <div class="hint">หลังบันทึกจะอ่าน <span class="kbd">action=reservoir</span> เพื่อตรวจค่าใหม่</div>
+    <pre id="out3">รอผลทดสอบ...</pre>
+  </div>
+</div>
+
+<!-- TEST 4: WRITE RAIN -->
+<div class="section">
+  <div class="s-hdr">
+    <span class="badge w">WRITE</span>
+    <span>4. ทดสอบบันทึกฝน (saverain)</span>
+    <span class="status s-wait" id="s4">รอ</span>
+  </div>
+  <div class="s-body">
+    <div class="row">
+      <select id="rnAm">
+        <option>เมืองหนองบัวลำภู</option>
+        <option>นาวัง</option>
+        <option>นากลาง</option>
+        <option>ศรีบุญเรือง</option>
+        <option>สุวรรณคูหา</option>
+        <option>โนนสัง</option>
+      </select>
+      <input type="number" id="rnVal" placeholder="ปริมาณฝน" value="15.5" step="0.1">
+      <input id="rnUser" placeholder="ผู้บันทึก" value="ทดสอบระบบ">
+      <button class="w" onclick="testWriteRain()">บันทึก & ตรวจ</button>
+    </div>
+    <pre id="out4">รอผลทดสอบ...</pre>
+  </div>
+</div>
+
+<!-- SUMMARY -->
+<div class="summary">
+  <h3>📋 สรุปผลการทดสอบ</h3>
+  <ul>
+    <li><span class="lbl">1. อ่านข้อมูล (READ)</span><span class="v" id="r1">—</span></li>
+    <li><span class="lbl">2. เขียนระดับน้ำ</span><span class="v" id="r2">—</span></li>
+    <li><span class="lbl">3. เขียนอ่างเก็บน้ำ</span><span class="v" id="r3">—</span></li>
+    <li><span class="lbl">4. เขียนฝน</span><span class="v" id="r4">—</span></li>
+  </ul>
+  <div style="margin-top:14px;padding-top:12px;border-top:1px solid #334155;font-size:11.5px;color:#94a3b8;">
+    <strong style="color:#fbbf24;">วิธีใช้:</strong> ทดสอบทีละข้อ ดูผลใน <span class="kbd">pre</span> สีเขียวแล้ว <strong style="color:#7dd3fc;">copy ทั้งหมดส่งกลับมา</strong> ผมจะวินิจฉัยจากผลจริง แล้วเขียน patch ที่ตรงกับโครงสร้างข้อมูลจริงของคุณ
+  </div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const setStatus = (id, ok) => {
+  const e = $(id); if(!e) return;
+  e.textContent = ok ? 'ผ่าน' : 'ผิดพลาด';
+  e.className = `status ${ok?'s-ok':'s-err'}`;
+};
+const setSum = (id, msg, ok) => {
+  const e = $(id); if(!e) return;
+  e.textContent = msg;
+  e.className = `v ${ok?'ok':'err'}`;
+};
+
+// Auto-fill from config.js
+if (window.APP_CONFIG?.API_URL) $('apiUrl').value = window.APP_CONFIG.API_URL;
+
+// JSONP helper (Google Apps Script needs this to avoid CORS)
+function jsonp(url, params={}, timeout=15000) {
+  return new Promise((resolve, reject) => {
+    const cb = '__cb_' + Math.random().toString(36).slice(2,9);
+    const qs = Object.entries({...params, callback:cb}).map(([k,v])=>`${k}=${encodeURIComponent(v)}`).join('&');
+    const fullUrl = `${url}${url.includes('?')?'&':'?'}${qs}`;
+    const script = document.createElement('script');
+    const cleanup = () => { delete window[cb]; script.remove(); clearTimeout(t); };
+    const t = setTimeout(() => { cleanup(); reject(new Error('Timeout 15s — ตรวจสอบ API_URL หรือ Apps Script deployment')); }, timeout);
+    window[cb] = (data) => { cleanup(); resolve(data); };
+    script.onerror = () => { cleanup(); reject(new Error('Script load error — URL ผิดหรือ Apps Script ไม่ตอบสนอง')); };
+    script.src = fullUrl;
+    document.body.appendChild(script);
+  });
+}
+
+// Fallback fetch (in case GAS deployment uses CORS)
+async function tryBoth(url, params={}) {
+  try {
+    return await jsonp(url, params);
+  } catch(e1) {
+    try {
+      const qs = Object.entries(params).map(([k,v])=>`${k}=${encodeURIComponent(v)}`).join('&');
+      const r = await fetch(`${url}${url.includes('?')?'&':'?'}${qs}`);
+      return await r.json();
+    } catch(e2) {
+      throw new Error(`JSONP: ${e1.message} | fetch: ${e2.message}`);
+    }
+  }
+}
+
+async function testAllReads() {
+  const api = $('apiUrl').value.trim();
+  if(!api){ $('out1').textContent='⚠️ ใส่ API_URL ก่อน'; return; }
+  const out = $('out1');
+  const actions = ['summary','paneang','mong','water','rain','reservoir','dailyreport'];
+  out.textContent = '⏳ ทดสอบ...\n\n';
+  const results = {};
+  let allOk = true;
+  for (const a of actions) {
+    try {
+      const t0 = Date.now();
+      const data = await tryBoth(api, {action:a});
+      const ms = Date.now()-t0;
+      const preview = JSON.stringify(data).slice(0,250);
+      const len = Array.isArray(data) ? data.length : (data?.stations?.length ?? Object.keys(data||{}).length);
+      results[a] = {ok:true, ms, len, sample:preview};
+      out.textContent += `✅ ${a.padEnd(12)} (${ms}ms) · ${len} items\n   ${preview}${preview.length>=250?'...':''}\n\n`;
+    } catch(e) {
+      results[a] = {ok:false, err:e.message};
+      out.textContent += `❌ ${a.padEnd(12)} → ${e.message}\n\n`;
+      allOk = false;
+    }
+  }
+  setStatus('s1', allOk);
+  setSum('r1', allOk?`✓ อ่านได้ทั้ง 7 actions`:`✗ บาง action ล้มเหลว`, allOk);
+}
+
+async function testWriteWater() {
+  const api = $('apiUrl').value.trim();
+  const pin = $('pin').value.trim();
+  if(!api||!pin){ $('out2').textContent='⚠️ ใส่ API_URL และ PIN ก่อน'; return; }
+  const st = $('wSt').value, lv = $('wLv').value, user = $('wUser').value;
+  const now = new Date();
+  const date = now.toISOString().slice(0,10);
+  const time = now.toTimeString().slice(0,5);
+  const payload = {
+    action:'savewater', pin, station_id:st, date, time,
+    water_level:lv, reporter:user, note:'API_TEST'
+  };
+  $('out2').textContent = '⏳ ส่ง savewater...\npayload: ' + JSON.stringify(payload, null, 2) + '\n\n';
+  try {
+    const resp = await tryBoth(api, payload);
+    $('out2').textContent += '📨 backend ตอบกลับ:\n' + JSON.stringify(resp, null, 2) + '\n\n⏳ ตรวจ summary...\n';
+    const sum = await tryBoth(api, {action:'summary'});
+    const found = sum?.stations?.find(s=>s.station_id===st);
+    $('out2').textContent += '🔍 summary[station='+st+']:\n' + JSON.stringify(found, null, 2);
+    const ok = resp?.success !== false && !!found;
+    const matched = found && (parseFloat(found.current_level) === parseFloat(lv));
+    setStatus('s2', ok && matched);
+    setSum('r2', ok ? (matched?`✓ บันทึกสำเร็จ + แสดงในแดชบอร์ด`:`⚠️ บันทึกแล้วแต่ค่าไม่ match — อาจเป็น field name ไม่ตรง`) : `✗ ${resp?.error||resp?.message||'ล้มเหลว'}`, ok&&matched);
+  } catch(e) {
+    $('out2').textContent += '❌ ' + e.message;
+    setStatus('s2', false); setSum('r2', `✗ ${e.message}`, false);
+  }
+}
+
+async function testWriteRes() {
+  const api = $('apiUrl').value.trim();
+  const pin = $('pin').value.trim();
+  if(!api||!pin){ $('out3').textContent='⚠️ ใส่ API_URL และ PIN ก่อน'; return; }
+  const rid = $('rRes').value, vol = $('rVol').value, user = $('rUser').value;
+  const date = new Date().toISOString().slice(0,10);
+  const RES_NAMES = {R01:'ห้วยยางเงาะ',R04:'อ่างน้ำบอง',R03:'ห้วยเหล่ายาง'};
+  const RES_AMP   = {R01:'เมืองหนองบัวลำภู',R04:'โนนสัง',R03:'เมืองหนองบัวลำภู'};
+  const RES_CAP   = {R01:0.400, R04:20.800, R03:2.469};
+  const payload = {
+    action:'savereservoir', pin,
+    reservoir_id:rid, reservoir_name:RES_NAMES[rid], amphoe:RES_AMP[rid],
+    date, current_volume:vol, capacity:RES_CAP[rid], reporter:user
+  };
+  $('out3').textContent = '⏳ ส่ง savereservoir...\npayload: ' + JSON.stringify(payload, null, 2) + '\n\n';
+  try {
+    const resp = await tryBoth(api, payload);
+    $('out3').textContent += '📨 backend ตอบกลับ:\n' + JSON.stringify(resp, null, 2) + '\n\n⏳ ตรวจ reservoir...\n';
+    const arr = await tryBoth(api, {action:'reservoir'});
+    const found = Array.isArray(arr) ? arr.find(r=>r.reservoir_id===rid) : null;
+    $('out3').textContent += '🔍 reservoir[id='+rid+']:\n' + JSON.stringify(found, null, 2);
+    const ok = resp?.success !== false && !!found;
+    const matched = found && (parseFloat(found.current_volume) === parseFloat(vol));
+    setStatus('s3', ok && matched);
+    setSum('r3', ok ? (matched?`✓ บันทึกสำเร็จ + แสดงในแดชบอร์ด`:`⚠️ บันทึกแล้วแต่ค่าไม่ match`) : `✗ ${resp?.error||resp?.message||'ล้มเหลว — PIN อาจไม่ถูกส่ง'}`, ok&&matched);
+  } catch(e) {
+    $('out3').textContent += '❌ ' + e.message;
+    setStatus('s3', false); setSum('r3', `✗ ${e.message}`, false);
+  }
+}
+
+async function testWriteRain() {
+  const api = $('apiUrl').value.trim();
+  const pin = $('pin').value.trim();
+  if(!api||!pin){ $('out4').textContent='⚠️ ใส่ API_URL และ PIN ก่อน'; return; }
+  const amp = $('rnAm').value, val = $('rnVal').value, user = $('rnUser').value;
+  const date = new Date().toISOString().slice(0,10);
+  const payload = {
+    action:'saverain', pin, amphoe:amp, date,
+    rain_24h:val, reporter:user, note:'API_TEST'
+  };
+  $('out4').textContent = '⏳ ส่ง saverain...\npayload: ' + JSON.stringify(payload, null, 2) + '\n\n';
+  try {
+    const resp = await tryBoth(api, payload);
+    $('out4').textContent += '📨 backend ตอบกลับ:\n' + JSON.stringify(resp, null, 2) + '\n\n⏳ ตรวจ rain...\n';
+    const arr = await tryBoth(api, {action:'rain'});
+    $('out4').textContent += '🔍 rain (10 รายการล่าสุด):\n' + JSON.stringify(Array.isArray(arr)?arr.slice(0,10):arr, null, 2);
+    const ok = resp?.success !== false;
+    setStatus('s4', ok);
+    setSum('r4', ok?`✓ บันทึกสำเร็จ`:`✗ ${resp?.error||'ล้มเหลว'}`, ok);
+  } catch(e) {
+    $('out4').textContent += '❌ ' + e.message;
+    setStatus('s4', false); setSum('r4', `✗ ${e.message}`, false);
+  }
+}
+</script>
+</body>
+</html>
