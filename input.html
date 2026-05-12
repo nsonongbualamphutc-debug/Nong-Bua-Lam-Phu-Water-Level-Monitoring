@@ -606,7 +606,10 @@ async function api(p){
   if(["savewater","saverain","savereservoir","savedailyreport"].includes(action)){
     p.pin = sessionStorage.getItem("wat_pin") || "";
   }
-  const r=await fetch(API_URL,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(p)});
+  /* IMPORTANT: ไม่ใส่ Content-Type header เพื่อให้เป็น "simple request"
+     (text/plain) — เลี่ยง CORS preflight ที่ Google Apps Script ไม่รองรับ
+     doPost ใน Code.gs ยังคงรับ e.postData.contents เป็น JSON string ปกติ */
+  const r=await fetch(API_URL,{method:"POST",body:JSON.stringify(p)});
   return await r.json();
 }
 function toast(id,msg,cls,dur=4500){const el=document.getElementById(id);if(!el)return;el.className="toast "+cls;el.textContent=msg;el.style.display="flex";setTimeout(()=>{el.style.display="none";},dur);}

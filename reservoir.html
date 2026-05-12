@@ -837,6 +837,7 @@ async function saveReservoirData() {
   const r = RESERVOIRS.find(x => x.id === rid);
   const payload = {
     action: "savereservoir",
+    pin: sessionStorage.getItem("wat_pin") || "",  // ← เพิ่ม PIN เพราะ backend บังคับ
     reservoir_id: rid,
     reservoir_name: r.name,
     amphoe: r.amphoe,
@@ -864,7 +865,8 @@ async function saveReservoirData() {
   btn.disabled = true; btn.textContent = "⏳ กำลังบันทึก...";
   status.style.display = "none";
   try {
-    const res  = await fetch(API_URL, { method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload) });
+    // ไม่ใส่ Content-Type header — เลี่ยง CORS preflight ที่ Apps Script ไม่รองรับ
+    const res  = await fetch(API_URL, { method:"POST", body:JSON.stringify(payload) });
     const data = await res.json();
     if (data.ok) {
       status.className = "save-status success";
@@ -916,19 +918,6 @@ initForm();
 initMap();
 loadData();
 setInterval(loadData, 5 * 60 * 1000);
-  const payload = {
-  action: "savereservoir",
-  pin: sessionStorage.getItem("wat_pin") || "",  // ← เพิ่มบรรทัดนี้
-  reservoir_id: rid,
-  reservoir_name: r.name,
-  amphoe: r.amphoe,
-  date:   date,
-  current_volume: parseFloat(vol),
-  level:    document.getElementById("fLevel").value   || "",
-  inflow:   document.getElementById("fInflow").value  || "",
-  outflow:  document.getElementById("fOutflow").value || "",
-  capacity: r.capacity,
-};
 </script>
 </body>
 </html>
