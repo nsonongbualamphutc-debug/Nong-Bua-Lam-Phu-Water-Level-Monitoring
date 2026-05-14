@@ -837,7 +837,7 @@ async function saveReservoirData() {
   const r = RESERVOIRS.find(x => x.id === rid);
   const payload = {
     action: "savereservoir",
-    pin: sessionStorage.getItem("wat_pin") || "",  // ← เพิ่ม PIN เพราะ backend บังคับ
+    pin: sessionStorage.getItem("wat_pin") || "",  // ← Backend บังคับ PIN
     reservoir_id: rid,
     reservoir_name: r.name,
     amphoe: r.amphoe,
@@ -862,11 +862,28 @@ async function saveReservoirData() {
     return;
   }
 
+  // ตรวจสอบ PIN ก่อนยิง
+  if (!payload.pin) {
+    status.className = "save-status error";
+    status.style.display = "inline-flex";
+    status.textContent = "❌ ยังไม่ได้เข้าสู่ระบบ — กรุณาเปิดหน้า input.html ใส่ PIN ก่อน";
+    setTimeout(() => { status.style.display = "none"; }, 5000);
+    return;
+  }
+
   btn.disabled = true; btn.textContent = "⏳ กำลังบันทึก...";
   status.style.display = "none";
   try {
-    // ไม่ใส่ Content-Type header — เลี่ยง CORS preflight ที่ Apps Script ไม่รองรับ
-    const res  = await fetch(API_URL, { method:"POST", body:JSON.stringify(payload) });
+    // ส่งผ่าน GET query string — เลี่ยง CORS preflight + 302 redirect body-stripping
+    // Code.gs ต้องรับ savereservoir ใน doGet (อัปเดต Code.gs ฉบับใหม่แล้ว)
+    const qs = new URLSearchParams();
+    Object.keys(payload).forEach(k=>{
+      const v = payload[k];
+      if(v===undefined||v===null||v==="") return;
+      qs.append(k, String(v));
+    });
+    const url = API_URL + (API_URL.includes("?")?"&":"?") + qs.toString();
+    const res  = await fetch(url, { method:"GET", redirect:"follow" });
     const data = await res.json();
     if (data.ok) {
       status.className = "save-status success";
@@ -878,7 +895,7 @@ async function saveReservoirData() {
     }
   } catch(e) {
     status.className = "save-status error";
-    status.textContent = "❌ เชื่อมต่อ API ไม่ได้";
+    status.textContent = "❌ เชื่อมต่อ API ไม่ได้: " + e.message;
   }
   status.style.display = "inline-flex";
   btn.disabled = false; btn.textContent = "💾 บันทึกข้อมูล";

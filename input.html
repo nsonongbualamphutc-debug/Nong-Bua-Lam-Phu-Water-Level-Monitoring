@@ -598,7 +598,12 @@ function renderLog(){
 function clrHist(){if(!confirm("ล้างประวัติ?"))return;LOG.length=0;renderLog();}
 
 /* ============================================================
- *  API
+ *  API — ใช้ fetch GET กับทุก action (รวม write actions)
+ *  เหตุผล: Apps Script /exec ทำ 302 redirect ข้ามไปยัง
+ *  script.googleusercontent.com — เวลา cross-origin POST ตาม
+ *  redirect ไป body จะถูก browser ตัดทิ้ง = ข้อมูลไม่ถึง backend
+ *  แก้โดยส่งทุกอย่างผ่าน URL query string (เป็น simple request
+ *  ไม่ต้องทำ CORS preflight) ฝั่ง Code.gs รับใน doGet
  * ============================================================ */
 async function api(p){
   if(!API_URL)return{ok:true,demo:true,message:"demo"};
@@ -606,10 +611,15 @@ async function api(p){
   if(["savewater","saverain","savereservoir","savedailyreport"].includes(action)){
     p.pin = sessionStorage.getItem("wat_pin") || "";
   }
-  /* IMPORTANT: ไม่ใส่ Content-Type header เพื่อให้เป็น "simple request"
-     (text/plain) — เลี่ยง CORS preflight ที่ Google Apps Script ไม่รองรับ
-     doPost ใน Code.gs ยังคงรับ e.postData.contents เป็น JSON string ปกติ */
-  const r=await fetch(API_URL,{method:"POST",body:JSON.stringify(p)});
+  // สร้าง query string — ตัดค่าว่าง/null/undefined ออกเพื่อให้ URL สะอาด
+  const qs = new URLSearchParams();
+  Object.keys(p).forEach(k=>{
+    const v = p[k];
+    if(v===undefined||v===null||v==="") return;
+    qs.append(k, String(v));
+  });
+  const url = API_URL + (API_URL.includes("?")?"&":"?") + qs.toString();
+  const r = await fetch(url, { method:"GET", redirect:"follow" });
   return await r.json();
 }
 function toast(id,msg,cls,dur=4500){const el=document.getElementById(id);if(!el)return;el.className="toast "+cls;el.textContent=msg;el.style.display="flex";setTimeout(()=>{el.style.display="none";},dur);}
