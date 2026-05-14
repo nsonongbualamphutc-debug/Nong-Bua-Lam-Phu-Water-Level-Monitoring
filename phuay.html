@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>ลำน้ำโมง | สถานการณ์น้ำ จ.หนองบัวลำภู</title>
+<title>ลำน้ำพวย | สถานการณ์น้ำ จ.หนองบัวลำภู</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800&family=Kanit:wght@400;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
@@ -264,7 +264,7 @@ footer strong { color: #fff; }
         </svg>
       </div>
       <div>
-        <div class="hdr-title">ลำน้ำโมง</div>
+        <div class="hdr-title">ลำน้ำพวย</div>
         <div class="hdr-sub">Mong River · 2 สถานีตรวจวัด · อำเภอสุวรรณคูหา</div>
       </div>
     </div>
@@ -283,9 +283,9 @@ footer strong { color: #fff; }
     <a href="index.html">🏠 หน้าหลัก</a>
     <a href="daily_briefing.html">📊 รายงานประจำวัน</a>
     <a href="paneang.html">🌊 ลำน้ำพะเนียง</a>
-    <a href="mong.html" class="active">🌿 ลำน้ำโมง</a>
+    <a href="mong.html">🌿 ลำน้ำโมง</a>
     <a href="mo.html">🌊 ลำน้ำมอ</a>
-    <a href="phuay.html">🌊 ลำน้ำพวย</a>
+    <a href="phuay.html" class="active">🌊 ลำน้ำพวย</a>
     <a href="rainfall.html">🌧️ ปริมาณฝน</a>
     <a href="reservoir.html">🏞️ อ่างเก็บน้ำ</a>
     <a href="input.html">📝 บันทึกข้อมูล</a>
@@ -299,7 +299,7 @@ footer strong { color: #fff; }
   <div class="sc info">
     <div class="sc-label">สถานีตรวจวัด</div>
     <div class="sc-value">2</div>
-    <div class="sc-sub">ลำน้ำโมง</div>
+    <div class="sc-sub">ลำน้ำพวย</div>
   </div>
   <div class="sc normal">
     <div class="sc-label">สถานะปกติ</div>
@@ -326,7 +326,7 @@ footer strong { color: #fff; }
 <!-- River Scene -->
 <div class="scene-wrap">
   <div class="scene-head">
-    <h2>🌿 ฉากลำน้ำโมง — ระดับน้ำ Real-time ทั้ง 2 สถานี</h2>
+    <h2>🌊 ฉากลำน้ำพวย — ระดับน้ำ Real-time ทั้ง 3 สถานี</h2>
     <div class="scene-meta" id="lastUpdate">—</div>
   </div>
 
@@ -438,7 +438,7 @@ footer strong { color: #fff; }
       </g>
 
       <!-- River name -->
-      <text x="30" y="138" font-size="16" font-weight="bold" fill="rgba(255,255,255,.7)" font-family="Kanit">ลำน้ำโมง</text>
+      <text x="30" y="138" font-size="16" font-weight="bold" fill="rgba(255,255,255,.7)" font-family="Kanit">ลำน้ำพวย</text>
 
       <!-- Station pins (JS rendered) -->
       <g id="scenePins"></g>
@@ -486,7 +486,7 @@ footer strong { color: #fff; }
 
 <!-- Table -->
 <div class="table-panel">
-  <div class="tp-head"><h3>ตารางสถานีตรวจวัดทั้งหมด — ลำน้ำโมง</h3></div>
+  <div class="tp-head"><h3>ตารางสถานีตรวจวัดทั้งหมด — ลำน้ำพวย</h3></div>
   <div style="overflow-x:auto;">
     <table>
       <thead>
@@ -519,10 +519,9 @@ footer strong { color: #fff; }
 const API_URL = window.APP_CONFIG?.API_URL || ""; // ตั้งค่าใน config.js
 
 const STATIONS = [
-  {id:"MG01", no:1, name:"คลองบุญทัน",  village:"บ้านบุญทัน",  amphoe:"สุวรรณคูหา", bank:231.0, warn:230.5, crit:231.0},
-  {id:"MG02", no:2, name:"บ้านโคก",      village:"บ้านโคก",     amphoe:"สุวรรณคูหา", bank:218.0, warn:217.5, crit:218.0},
-  {id:"MG03", no:3, name:"บ้านนาตาแหลว", village:"บ้านโคก",     amphoe:"สุวรรณคูหา", bank:202.0, warn:201.5, crit:202.0},
-  {id:"MG04", no:4, name:"บ้านกุดผึ้ง",   village:"บ้านกุดผึ้ง",  amphoe:"สุวรรณคูหา", bank:192.0, warn:191.5, crit:192.0},
+  {id:"PY01", no:1, name:"บ้านวังโปร่ง",  village:"บ้านวังโปร่ง",  amphoe:"ศรีบุญเรือง", bank:212.0, warn:211.5, crit:212.0},
+  {id:"PY02", no:2, name:"บ้านทุ่งโพธิ์", village:"บ้านทุ่งโพธิ์", amphoe:"ศรีบุญเรือง", bank:197.0, warn:196.5, crit:197.0},
+  {id:"PY03", no:3, name:"บ้านโคกล่าม",  village:"บ้านโคกล่าม",  amphoe:"ศรีบุญเรือง", bank:193.0, warn:192.5, crit:193.0},
 ];
 
 let stationData = {};
@@ -875,7 +874,7 @@ function renderCharts() {
 async function loadData() {
   if (API_URL) {
     try {
-      const res  = await fetch(API_URL + "?action=mong");
+      const res  = await fetch(API_URL + "?action=phuay");
       const data = await res.json();
       if (data.stations) data.stations.forEach(item => {
         if (stationData[item.id]) stationData[item.id].current = item.current;

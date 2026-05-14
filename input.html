@@ -195,6 +195,8 @@ footer strong{color:#fff;}
     <a href="index.html">🏠 หน้าหลัก</a>
     <a href="paneang.html">🌊 ลำน้ำพะเนียง</a>
     <a href="mong.html">🌿 ลำน้ำโมง</a>
+    <a href="mo.html">💧 ลำน้ำมอ</a>
+    <a href="phuay.html">🌀 ลำน้ำพวย</a>
     <a href="rainfall.html">🌧️ ปริมาณฝน</a>
     <a href="reservoir.html">🏞️ อ่างเก็บน้ำ</a>
     <a href="input.html" class="active">📝 บันทึกข้อมูล</a>
@@ -237,6 +239,18 @@ footer strong{color:#fff;}
             <optgroup label="ลำน้ำโมง">
               <option value="MG01">MG01 · คลองบุญทัน (สุวรรณคูหา)</option>
               <option value="MG02">MG02 · บ้านโคก (สุวรรณคูหา)</option>
+              <option value="MG03">MG03 · บ้านนาตาแหลว (สุวรรณคูหา)</option>
+              <option value="MG04">MG04 · บ้านกุดผึ้ง (สุวรรณคูหา)</option>
+            </optgroup>
+            <optgroup label="ลำน้ำมอ">
+              <option value="MO01">MO01 · อ่างเก็บน้ำมอ (ศรีบุญเรือง)</option>
+              <option value="MO02">MO02 · บ้านวังคูณ (ศรีบุญเรือง)</option>
+              <option value="MO03">MO03 · บ้านโนนสูงเปลือย (ศรีบุญเรือง)</option>
+            </optgroup>
+            <optgroup label="ลำน้ำพวย">
+              <option value="PY01">PY01 · บ้านวังโปร่ง (ศรีบุญเรือง)</option>
+              <option value="PY02">PY02 · บ้านทุ่งโพธิ์ (ศรีบุญเรือง)</option>
+              <option value="PY03">PY03 · บ้านโคกล่าม (ศรีบุญเรือง)</option>
             </optgroup>
           </select>
         </div>
@@ -460,24 +474,35 @@ function goTab(name, btn) {
  *  STATIONS
  * ============================================================ */
 const STA = [
-  {id:"PN01",no:1, nm:"วังปลาป้อม",       am:"นาวัง",              bk:290.0},
-  {id:"PN02",no:2, nm:"โคกกระทอ",         am:"นาวัง",              bk:266.0},
-  {id:"PN03",no:3, nm:"วังสามหาบ",         am:"นาวัง",              bk:258.0},
-  {id:"PN04",no:4, nm:"บ้านหนองด่าน",      am:"นากลาง",            bk:249.0},
-  {id:"PN05",no:5, nm:"บ้านฝั่งแดง",       am:"นากลาง",            bk:237.0},
-  {id:"PN06",no:6, nm:"ปตร.หนองหว้าใหญ่",  am:"เมืองหนองบัวลำภู", bk:216.0},
-  {id:"PN07",no:7, nm:"วังหมื่น",           am:"เมืองหนองบัวลำภู", bk:210.0},
-  {id:"PN08",no:8, nm:"ปตร.ปู่หลอด",       am:"เมืองหนองบัวลำภู", bk:203.0},
-  {id:"PN09",no:9, nm:"บ้านข้องโป้",       am:"เมืองหนองบัวลำภู", bk:201.0},
-  {id:"PN10",no:10,nm:"ปตร.หัวนา",         am:"เมืองหนองบัวลำภู", bk:191.0},
+  {id:"PN01",no:1, nm:"วังปลาป้อม",       am:"นาวัง",              bk:290.0, rv:"พะเนียง"},
+  {id:"PN02",no:2, nm:"โคกกระทอ",         am:"นาวัง",              bk:266.0, rv:"พะเนียง"},
+  {id:"PN03",no:3, nm:"วังสามหาบ",         am:"นาวัง",              bk:258.0, rv:"พะเนียง"},
+  {id:"PN04",no:4, nm:"บ้านหนองด่าน",      am:"นากลาง",            bk:249.0, rv:"พะเนียง"},
+  {id:"PN05",no:5, nm:"บ้านฝั่งแดง",       am:"นากลาง",            bk:237.0, rv:"พะเนียง"},
+  {id:"PN06",no:6, nm:"ปตร.หนองหว้าใหญ่",  am:"เมืองหนองบัวลำภู", bk:216.0, rv:"พะเนียง"},
+  {id:"PN07",no:7, nm:"วังหมื่น",           am:"เมืองหนองบัวลำภู", bk:210.0, rv:"พะเนียง"},
+  {id:"PN08",no:8, nm:"ปตร.ปู่หลอด",       am:"เมืองหนองบัวลำภู", bk:203.0, rv:"พะเนียง"},
+  {id:"PN09",no:9, nm:"บ้านข้องโป้",       am:"เมืองหนองบัวลำภู", bk:201.0, rv:"พะเนียง"},
+  {id:"PN10",no:10,nm:"ปตร.หัวนา",         am:"เมืองหนองบัวลำภู", bk:191.0, rv:"พะเนียง"},
   {id:"MG01",no:1, nm:"คลองบุญทัน",        am:"สุวรรณคูหา",        bk:231.0, rv:"โมง"},
   {id:"MG02",no:2, nm:"บ้านโคก",           am:"สุวรรณคูหา",        bk:218.0, rv:"โมง"},
+  {id:"MG03",no:3, nm:"บ้านนาตาแหลว",      am:"สุวรรณคูหา",        bk:202.0, rv:"โมง"},
+  {id:"MG04",no:4, nm:"บ้านกุดผึ้ง",        am:"สุวรรณคูหา",        bk:192.0, rv:"โมง"},
+  {id:"MO01",no:1, nm:"อ่างเก็บน้ำมอ",      am:"ศรีบุญเรือง",       bk:242.0, rv:"มอ"},
+  {id:"MO02",no:2, nm:"บ้านวังคูณ",         am:"ศรีบุญเรือง",       bk:211.0, rv:"มอ"},
+  {id:"MO03",no:3, nm:"บ้านโนนสูงเปลือย",   am:"ศรีบุญเรือง",       bk:202.0, rv:"มอ"},
+  {id:"PY01",no:1, nm:"บ้านวังโปร่ง",       am:"ศรีบุญเรือง",       bk:212.0, rv:"พวย"},
+  {id:"PY02",no:2, nm:"บ้านทุ่งโพธิ์",       am:"ศรีบุญเรือง",       bk:197.0, rv:"พวย"},
+  {id:"PY03",no:3, nm:"บ้านโคกล่าม",        am:"ศรีบุญเรือง",       bk:193.0, rv:"พวย"},
 ];
 const msV = {};
 
 function buildMs() {
   const tb = document.getElementById("ms-body"); tb.innerHTML = "";
-  [[STA.filter(s=>!s.rv),"พะเนียง"],[STA.filter(s=>s.rv),"โมง"]].forEach(([arr,lbl]) => {
+  const RIVER_LABELS = ["พะเนียง","โมง","มอ","พวย"];
+  RIVER_LABELS.forEach(lbl => {
+    const arr = STA.filter(s => s.rv === lbl);
+    if (!arr.length) return;
     const gr=document.createElement("tr"); gr.className="rg";
     gr.innerHTML=`<td colspan="5">ลำน้ำ${lbl}</td>`; tb.appendChild(gr);
     arr.forEach(s=>{

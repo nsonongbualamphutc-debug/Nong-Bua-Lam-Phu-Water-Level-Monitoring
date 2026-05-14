@@ -29,11 +29,44 @@ function doGet(e) {
   const action   = (params.action   || "summary").toLowerCase();
   const callback = params.callback;
   let data;
+
+  const WRITE_ACTIONS = ["savewater","saverain","savereservoir","savedailyreport"];
+
   try {
+    // === WRITE ACTIONS via GET (เลี่ยง CORS preflight/302 redirect ที่ทำให้ POST ล้มเหลว) ===
+    if (WRITE_ACTIONS.indexOf(action) !== -1) {
+      if (PIN_REQUIRED) {
+        const expectedPin = getAppPin();
+        if (!expectedPin) {
+          return respond({ ok:false, error:"ยังไม่ได้ตั้งค่า APP_PIN ใน Script Properties", code:"PIN_NOT_CONFIGURED" }, callback);
+        }
+        const pin = String(params.pin || "").trim();
+        if (pin !== expectedPin) {
+          return respond({ ok:false, error:"PIN ไม่ถูกต้อง", code:"INVALID_PIN" }, callback);
+        }
+      }
+      // payload = query params ทั้งหมด ยกเว้น callback / action / pin
+      const payload = {};
+      Object.keys(params).forEach(function(k){
+        if (k === 'callback') return;
+        payload[k] = params[k];
+      });
+      switch (action) {
+        case "savewater":       data = saveWaterLevel(payload); break;
+        case "saverain":        data = saveRainfall(payload); break;
+        case "savereservoir":   data = saveReservoir(payload); break;
+        case "savedailyreport": data = saveDailyReport(payload); break;
+      }
+      return respond(data, callback);
+    }
+
+    // === READ ACTIONS (เดิม) ===
     switch (action) {
       case "summary":     data = getSummary(); break;
       case "paneang":     data = getRiverDashboard("paneang"); break;
       case "mong":        data = getRiverDashboard("mong"); break;
+      case "mo":          data = getRiverDashboard("mo"); break;
+      case "phuay":       data = getRiverDashboard("phuay"); break;
       case "stations":    data = getStations(params.river); break;
       case "water":       data = getWaterLevels(params.station_id, parseInt(params.days||"7")); break;
       case "rain":        data = getRainfall(parseInt(params.days||"7")); break;
@@ -43,7 +76,7 @@ function doGet(e) {
       case "ping":        data = { ok:true, time:new Date().toISOString() }; break;
       default:            data = { error:"unknown action: "+action };
     }
-  } catch(err) { data = { error:err.toString() }; }
+  } catch(err) { data = { ok:false, error:err.toString() }; }
   return respond(data, callback);
 }
 
@@ -117,7 +150,9 @@ function getRiverDashboard(riverKey) {
     const id = String(st.station_id || "").toUpperCase();
     const river = String(st.river || "").toLowerCase();
     if (key === "paneang") return id.indexOf("PN") === 0 || river.indexOf("paneang") !== -1 || river.indexOf("พะเนียง") !== -1;
-    if (key === "mong") return id.indexOf("MG") === 0 || river.indexOf("mong") !== -1 || river.indexOf("โมง") !== -1;
+    if (key === "mong")    return id.indexOf("MG") === 0 || river.indexOf("mong") !== -1 || river.indexOf("โมง") !== -1;
+    if (key === "mo")      return id.indexOf("MO") === 0 || river.indexOf("mo") === 0 || river.indexOf("ลำน้ำมอ") !== -1;
+    if (key === "phuay")   return id.indexOf("PY") === 0 || river.indexOf("phuay") !== -1 || river.indexOf("พวย") !== -1;
     return true;
   });
   const latest = getLatestWaterByStation();
@@ -252,6 +287,60 @@ function saveDailyReport(p) {
 }
 
 // ===== SETUP =====
+
+/** เรียกครั้งเดียวจาก Apps Script Editor หลังอัปเดต Code.gs
+ *  เพื่อ append สถานีใหม่ลง Sheet `Stations` โดยไม่กระทบของเดิม
+ *  ตรวจตาม station_id ถ้ามีแล้วจะข้าม ถ้ายังไม่มีจะเพิ่ม */
+function addMissingStations() {
+  const ALL_STATIONS = [
+    ["PN01","วังปลาป้อม","ลำน้ำพะเนียง","บ้านโคกเจริญ","นาวัง",17.42065,101.99304,290.0,289.5,290.0,true],
+    ["PN02","โคกกระทอ","ลำน้ำพะเนียง","บ้านโคกกระทอ","นาวัง",17.34314,102.07167,266.0,265.5,266.0,true],
+    ["PN03","วังสามหาบ","ลำน้ำพะเนียง","บ้านวังสามหาบ","นาวัง",17.30990,102.10789,258.0,257.5,258.0,true],
+    ["PN04","บ้านหนองด่าน","ลำน้ำพะเนียง","บ้านหนองด่าน","นากลาง",17.27936,102.16552,249.0,248.5,249.0,true],
+    ["PN05","บ้านฝั่งแดง","ลำน้ำพะเนียง","บ้านฝั่งแดง","นากลาง",17.26730,102.22728,237.0,236.5,237.0,true],
+    ["PN06","ปตร.หนองหว้าใหญ่","ลำน้ำพะเนียง","บ้านหนองหว้าใหญ่","เมืองหนองบัวลำภู",17.17981,102.38617,216.0,215.5,216.0,true],
+    ["PN07","วังหมื่น","ลำน้ำพะเนียง","บ้านวังหมื่น","เมืองหนองบัวลำภู",17.18317,102.43244,210.0,209.5,210.0,true],
+    ["PN08","ปตร.ปู่หลอด","ลำน้ำพะเนียง","บ้านโนนคูณ","เมืองหนองบัวลำภู",17.11487,102.45435,203.0,202.5,203.0,true],
+    ["PN09","บ้านข้องโป้","ลำน้ำพะเนียง","บ้านข้องโป้","เมืองหนองบัวลำภู",17.08217,102.45068,201.0,200.5,201.0,true],
+    ["PN10","ปตร.หัวนา","ลำน้ำพะเนียง","บ้านดอนหัน","เมืองหนองบัวลำภู",17.00067,102.42400,191.0,190.5,191.0,true],
+    ["MG01","คลองบุญทัน","ลำน้ำโมง","บ้านบุญทัน","สุวรรณคูหา",17.54512,102.16832,231.0,230.5,231.0,true],
+    ["MG02","บ้านโคก","ลำน้ำโมง","บ้านโคก","สุวรรณคูหา",17.54952,102.20425,218.0,217.5,218.0,true],
+    ["MG03","บ้านนาตาแหลว","ลำน้ำโมง","บ้านโคก","สุวรรณคูหา",17.57567,102.27326,202.0,201.5,202.0,true],
+    ["MG04","บ้านกุดผึ้ง","ลำน้ำโมง","บ้านกุดผึ้ง","สุวรรณคูหา",17.56062,102.31572,192.0,191.5,192.0,true],
+    ["MO01","อ่างเก็บน้ำมอ","ลำน้ำมอ","บ้านฝายหิน","ศรีบุญเรือง",17.16608,102.18177,242.0,241.5,242.0,true],
+    ["MO02","บ้านวังคูณ","ลำน้ำมอ","บ้านวังคูณ","ศรีบุญเรือง",17.03214,102.24920,211.0,210.5,211.0,true],
+    ["MO03","บ้านโนนสูงเปลือย","ลำน้ำมอ","บ้านโนนสูงเปลือย","ศรีบุญเรือง",16.96934,102.27002,202.0,201.5,202.0,true],
+    ["PY01","บ้านวังโปร่ง","ลำน้ำพวย","บ้านวังโปร่ง","ศรีบุญเรือง",17.01415,102.19359,212.0,211.5,212.0,true],
+    ["PY02","บ้านทุ่งโพธิ์","ลำน้ำพวย","บ้านทุ่งโพธิ์","ศรีบุญเรือง",16.97482,102.22344,197.0,196.5,197.0,true],
+    ["PY03","บ้านโคกล่าม","ลำน้ำพวย","บ้านโคกล่าม","ศรีบุญเรือง",16.91317,102.23807,193.0,192.5,193.0,true],
+  ];
+  const ss_obj = ss();
+  let sh = ss_obj.getSheetByName(SHEET_STATIONS);
+  if (!sh) {
+    sh = ss_obj.insertSheet(SHEET_STATIONS);
+    sh.appendRow(["station_id","name","river","village","amphoe","lat","lon","bank_level","warn_level","crit_level","active"]);
+  }
+  const data = sh.getDataRange().getValues();
+  const existing = {};
+  for (let i = 1; i < data.length; i++) {
+    const id = String(data[i][0] || "").trim().toUpperCase();
+    if (id) existing[id] = true;
+  }
+  let added = 0, skipped = 0;
+  const addedIds = [];
+  ALL_STATIONS.forEach(row => {
+    const id = String(row[0]).toUpperCase();
+    if (existing[id]) { skipped++; return; }
+    sh.appendRow(row);
+    added++;
+    addedIds.push(id);
+  });
+  const msg = "เพิ่มสถานีใหม่ " + added + " รายการ (ข้ามของเดิม " + skipped + " รายการ)" +
+              (addedIds.length ? " — " + addedIds.join(", ") : "");
+  Logger.log(msg);
+  return msg;
+}
+
 function runSetup() {
   const ss_obj=ss();
   function ensure(name,hdr){let sh=ss_obj.getSheetByName(name);if(!sh){sh=ss_obj.insertSheet(name);}if(sh.getLastRow()===0)sh.appendRow(hdr);return sh;}
@@ -274,6 +363,14 @@ function runSetup() {
      ["PN10","ปตร.หัวนา","ลำน้ำพะเนียง","บ้านดอนหัน","เมืองหนองบัวลำภู",17.00067,102.42400,191.0,190.5,191.0,true],
      ["MG01","คลองบุญทัน","ลำน้ำโมง","บ้านบุญทัน","สุวรรณคูหา",17.54512,102.16832,231.0,230.5,231.0,true],
      ["MG02","บ้านโคก","ลำน้ำโมง","บ้านโคก","สุวรรณคูหา",17.54952,102.20425,218.0,217.5,218.0,true],
+     ["MG03","บ้านนาตาแหลว","ลำน้ำโมง","บ้านโคก","สุวรรณคูหา",17.57567,102.27326,202.0,201.5,202.0,true],
+     ["MG04","บ้านกุดผึ้ง","ลำน้ำโมง","บ้านกุดผึ้ง","สุวรรณคูหา",17.56062,102.31572,192.0,191.5,192.0,true],
+     ["MO01","อ่างเก็บน้ำมอ","ลำน้ำมอ","บ้านฝายหิน","ศรีบุญเรือง",17.16608,102.18177,242.0,241.5,242.0,true],
+     ["MO02","บ้านวังคูณ","ลำน้ำมอ","บ้านวังคูณ","ศรีบุญเรือง",17.03214,102.24920,211.0,210.5,211.0,true],
+     ["MO03","บ้านโนนสูงเปลือย","ลำน้ำมอ","บ้านโนนสูงเปลือย","ศรีบุญเรือง",16.96934,102.27002,202.0,201.5,202.0,true],
+     ["PY01","บ้านวังโปร่ง","ลำน้ำพวย","บ้านวังโปร่ง","ศรีบุญเรือง",17.01415,102.19359,212.0,211.5,212.0,true],
+     ["PY02","บ้านทุ่งโพธิ์","ลำน้ำพวย","บ้านทุ่งโพธิ์","ศรีบุญเรือง",16.97482,102.22344,197.0,196.5,197.0,true],
+     ["PY03","บ้านโคกล่าม","ลำน้ำพวย","บ้านโคกล่าม","ศรีบุญเรือง",16.91317,102.23807,193.0,192.5,193.0,true],
     ].forEach(r=>stSh.appendRow(r));
   }
   const resSh=ss_obj.getSheetByName(SHEET_RESERVOIR);

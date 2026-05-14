@@ -1390,6 +1390,8 @@
     <a href="daily_briefing.html">📊 รายงานประจำวัน</a>
     <a href="paneang.html">🌊 ลำน้ำพะเนียง</a>
     <a href="mong.html">🌊 ลำน้ำโมง</a>
+    <a href="mo.html">🌊 ลำน้ำมอ</a>
+    <a href="phuay.html">🌊 ลำน้ำพวย</a>
     <a href="rainfall.html">🌧️ ปริมาณฝน</a>
     <a href="reservoir.html">🏞️ อ่างเก็บน้ำ</a>
     <a href="input.html">📝 บันทึกข้อมูล</a>
@@ -1520,7 +1522,21 @@
     <a href="mong.html" class="river-card mong">
       <div>
         <h3>ลำน้ำโมง</h3>
-        <p>2 สถานีตรวจวัด • อำเภอสุวรรณคูหา</p>
+        <p>4 สถานีตรวจวัด • อำเภอสุวรรณคูหา</p>
+      </div>
+      <span class="arrow">→</span>
+    </a>
+    <a href="mo.html" class="river-card mong">
+      <div>
+        <h3>ลำน้ำมอ</h3>
+        <p>3 สถานีตรวจวัด • อำเภอศรีบุญเรือง</p>
+      </div>
+      <span class="arrow">→</span>
+    </a>
+    <a href="phuay.html" class="river-card mong">
+      <div>
+        <h3>ลำน้ำพวย</h3>
+        <p>3 สถานีตรวจวัด • อำเภอศรีบุญเรือง</p>
       </div>
       <span class="arrow">→</span>
     </a>
@@ -1823,6 +1839,14 @@ const DEMO_STATIONS = [
   {id:"PN10",river:"ลำน้ำพะเนียง",no:10,name:"ปตร.หัวนา",village:"บ้านดอนหัน",amphoe:"เมืองหนองบัวลำภู",lat:17.00067,lon:102.424,bank:191.0,warn:190.5,crit:191.0,current:189.40},
   {id:"MG01",river:"ลำน้ำโมง",no:1,name:"คลองบุญทัน",village:"บ้านบุญทัน",amphoe:"สุวรรณคูหา",lat:17.54512,lon:102.16832,bank:231.0,warn:230.5,crit:231.0,current:229.10},
   {id:"MG02",river:"ลำน้ำโมง",no:2,name:"บ้านโคก",village:"บ้านโคก",amphoe:"สุวรรณคูหา",lat:17.54952,lon:102.20425,bank:218.0,warn:217.5,crit:218.0,current:216.40},
+  {id:"MG03",river:"ลำน้ำโมง",no:3,name:"บ้านนาตาแหลว",village:"บ้านโคก",amphoe:"สุวรรณคูหา",lat:17.57567,lon:102.27326,bank:202.0,warn:201.5,crit:202.0,current:200.10},
+  {id:"MG04",river:"ลำน้ำโมง",no:4,name:"บ้านกุดผึ้ง",village:"บ้านกุดผึ้ง",amphoe:"สุวรรณคูหา",lat:17.56062,lon:102.31572,bank:192.0,warn:191.5,crit:192.0,current:190.20},
+  {id:"MO01",river:"ลำน้ำมอ",no:1,name:"อ่างเก็บน้ำมอ",village:"บ้านฝายหิน",amphoe:"ศรีบุญเรือง",lat:17.16608,lon:102.18177,bank:242.0,warn:241.5,crit:242.0,current:240.20},
+  {id:"MO02",river:"ลำน้ำมอ",no:2,name:"บ้านวังคูณ",village:"บ้านวังคูณ",amphoe:"ศรีบุญเรือง",lat:17.03214,lon:102.24920,bank:211.0,warn:210.5,crit:211.0,current:209.30},
+  {id:"MO03",river:"ลำน้ำมอ",no:3,name:"บ้านโนนสูงเปลือย",village:"บ้านโนนสูงเปลือย",amphoe:"ศรีบุญเรือง",lat:16.96934,lon:102.27002,bank:202.0,warn:201.5,crit:202.0,current:200.40},
+  {id:"PY01",river:"ลำน้ำพวย",no:1,name:"บ้านวังโปร่ง",village:"บ้านวังโปร่ง",amphoe:"ศรีบุญเรือง",lat:17.01415,lon:102.19359,bank:212.0,warn:211.5,crit:212.0,current:210.30},
+  {id:"PY02",river:"ลำน้ำพวย",no:2,name:"บ้านทุ่งโพธิ์",village:"บ้านทุ่งโพธิ์",amphoe:"ศรีบุญเรือง",lat:16.97482,lon:102.22344,bank:197.0,warn:196.5,crit:197.0,current:195.40},
+  {id:"PY03",river:"ลำน้ำพวย",no:3,name:"บ้านโคกล่าม",village:"บ้านโคกล่าม",amphoe:"ศรีบุญเรือง",lat:16.91317,lon:102.23807,bank:193.0,warn:192.5,crit:193.0,current:191.50},
 ];
 
 const DEMO_RAIN = [
