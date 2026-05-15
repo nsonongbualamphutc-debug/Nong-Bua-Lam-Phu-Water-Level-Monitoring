@@ -7,15 +7,20 @@
  * ============================================================ */
 
 // ===== CONFIG =====
-const SHEET_STATIONS  = "Stations";
-const SHEET_WATER     = "WaterLevel";
-const SHEET_RAIN      = "Rainfall";
-const SHEET_RESERVOIR = "Reservoir";
-const SHEET_SETTINGS  = "Settings";
+const SHEET_STATIONS    = "Stations";
+const SHEET_WATER       = "WaterLevel";
+const SHEET_RAIN        = "Rainfall";
+const SHEET_RESERVOIR   = "Reservoir";
+const SHEET_SETTINGS    = "Settings";
+const SHEET_PINS        = "StationPins";      // PIN รายสถานี
+const SHEET_AMPHOE_PINS = "AmphoePins";       // PIN รายอำเภอ (สำหรับฝน)
 
 // ===== PIN =====
-const PIN_PROPERTY_KEY = "APP_PIN";
-const PIN_REQUIRED = true;       // false = ปิด PIN ระหว่าง dev
+const PIN_PROPERTY_KEY   = "APP_PIN";           // legacy global PIN (เผื่อ reservoir.html, daily report)
+const ADMIN_PIN_KEY      = "ADMIN_PIN";         // master PIN สำหรับ Admin
+const PIN_REQUIRED       = true;                // false = ปิด PIN ระหว่าง dev
+const WRITE_ACTIONS      = ["savewater","saverain","savereservoir","savedailyreport"];
+const AMPHOES = ["เมืองหนองบัวลำภู","นากลาง","นาวัง","ศรีบุญเรือง","สุวรรณคูหา","โนนสัง"];
 
 const RESERVOIR_HEADERS = [
   "reservoir_id","reservoir_name","amphoe","capacity",
@@ -33,19 +38,38 @@ function doGet(e) {
   const WRITE_ACTIONS = ["savewater","saverain","savereservoir","savedailyreport"];
 
   try {
-    // === WRITE ACTIONS via GET (เลี่ยง CORS preflight/302 redirect ที่ทำให้ POST ล้มเหลว) ===
+    // === WRITE ACTIONS via GET — PIN แยกตามสถานี/อำเภอ ===
     if (WRITE_ACTIONS.indexOf(action) !== -1) {
+      const pin = String(params.pin || "").trim();
+      let pinOk = false;
+      let pinError = "PIN ไม่ถูกต้อง";
+
       if (PIN_REQUIRED) {
-        const expectedPin = getAppPin();
-        if (!expectedPin) {
-          return respond({ ok:false, error:"ยังไม่ได้ตั้งค่า APP_PIN ใน Script Properties", code:"PIN_NOT_CONFIGURED" }, callback);
+        // อนุญาต Admin master PIN override ทุก action
+        if (pin && verifyAdminPin(pin)) {
+          pinOk = true;
+        } else if (action === "savewater") {
+          const stid = String(params.station_id || "").toUpperCase();
+          if (!stid) pinError = "ไม่ระบุรหัสสถานี (station_id)";
+          else if (verifyStationPin(stid, pin)) { pinOk = true; touchStationPinLastUsed(stid); }
+          else pinError = "PIN ไม่ถูกต้องสำหรับสถานี " + stid;
+        } else if (action === "saverain") {
+          const amphoe = String(params.amphoe || "");
+          if (!amphoe) pinError = "ไม่ระบุอำเภอ";
+          else if (verifyAmphoePin(amphoe, pin)) { pinOk = true; touchAmphoePinLastUsed(amphoe); }
+          else pinError = "PIN ไม่ถูกต้องสำหรับอำเภอ " + amphoe;
+        } else {
+          // savereservoir / savedailyreport — fallback legacy APP_PIN หรือ Admin
+          const expected = getAppPin();
+          if (expected && pin === expected) pinOk = true;
+          else pinError = "ต้องใช้ PIN ผู้ดูแลระบบสำหรับการบันทึก " + action;
         }
-        const pin = String(params.pin || "").trim();
-        if (pin !== expectedPin) {
-          return respond({ ok:false, error:"PIN ไม่ถูกต้อง", code:"INVALID_PIN" }, callback);
-        }
+      } else {
+        pinOk = true;
       }
-      // payload = query params ทั้งหมด ยกเว้น callback / action / pin
+
+      if (!pinOk) return respond({ ok:false, error:pinError, code:"INVALID_PIN" }, callback);
+
       const payload = {};
       Object.keys(params).forEach(function(k){
         if (k === 'callback') return;
@@ -60,6 +84,61 @@ function doGet(e) {
       return respond(data, callback);
     }
 
+    // === PUBLIC LOGIN — verify PIN, return entity info if ok ===
+    if (action === "loginstation") {
+      const stid = String(params.station_id || "").toUpperCase();
+      const pin  = String(params.pin || "").trim();
+      if (!stid) return respond({ ok:false, error:"ไม่ระบุรหัสสถานี" }, callback);
+      if (!verifyStationPin(stid, pin) && !verifyAdminPin(pin)) {
+        return respond({ ok:false, error:"PIN ไม่ถูกต้อง" }, callback);
+      }
+      return respond({ ok:true, station: getStationContext(stid) }, callback);
+    }
+    if (action === "loginamphoe") {
+      const am  = String(params.amphoe || "");
+      const pin = String(params.pin || "").trim();
+      if (!am) return respond({ ok:false, error:"ไม่ระบุอำเภอ" }, callback);
+      if (!verifyAmphoePin(am, pin) && !verifyAdminPin(pin)) {
+        return respond({ ok:false, error:"PIN ไม่ถูกต้อง" }, callback);
+      }
+      return respond({ ok:true, amphoe: getAmphoeContext(am) }, callback);
+    }
+    if (action === "adminlogin") {
+      const pin = String(params.pin || "").trim();
+      if (!verifyAdminPin(pin)) return respond({ ok:false, error:"PIN ผู้ดูแลระบบไม่ถูกต้อง" }, callback);
+      return respond({ ok:true, role:"admin" }, callback);
+    }
+
+    // === ADMIN ACTIONS (need admin pin in `adminpin` param) ===
+    const adminActions = ["liststationpins","setstationpin","initstationpins","listamphoepins","setamphoepin","initamphoepins","stationcontext","amphoecontext"];
+    if (adminActions.indexOf(action) !== -1) {
+      const adminpin = String(params.adminpin || params.pin || "").trim();
+      // stationcontext / amphoecontext อนุญาตให้ station/amphoe pin ใช้ได้ด้วย (สำหรับ refresh ในคอนโซล)
+      const isAdmin = verifyAdminPin(adminpin);
+      if (action === "stationcontext") {
+        const stid = String(params.station_id || "").toUpperCase();
+        if (!stid) return respond({ ok:false, error:"ไม่ระบุรหัสสถานี" }, callback);
+        if (!isAdmin && !verifyStationPin(stid, adminpin)) return respond({ ok:false, error:"PIN ไม่ถูกต้อง" }, callback);
+        return respond({ ok:true, station: getStationContext(stid) }, callback);
+      }
+      if (action === "amphoecontext") {
+        const am = String(params.amphoe || "");
+        if (!am) return respond({ ok:false, error:"ไม่ระบุอำเภอ" }, callback);
+        if (!isAdmin && !verifyAmphoePin(am, adminpin)) return respond({ ok:false, error:"PIN ไม่ถูกต้อง" }, callback);
+        return respond({ ok:true, amphoe: getAmphoeContext(am) }, callback);
+      }
+      if (!isAdmin) return respond({ ok:false, error:"ต้องใช้ PIN ผู้ดูแลระบบ" }, callback);
+      switch (action) {
+        case "liststationpins":  data = listStationPins();  break;
+        case "setstationpin":    data = setStationPin_(params.station_id, params.new_pin, params.recorder_name); break;
+        case "initstationpins":  data = initStationPins();  break;
+        case "listamphoepins":   data = listAmphoePins();   break;
+        case "setamphoepin":     data = setAmphoePin_(params.amphoe, params.new_pin, params.recorder_name); break;
+        case "initamphoepins":   data = initAmphoePins();   break;
+      }
+      return respond(data, callback);
+    }
+
     // === READ ACTIONS (เดิม) ===
     switch (action) {
       case "summary":     data = getSummary(); break;
@@ -68,6 +147,7 @@ function doGet(e) {
       case "mo":          data = getRiverDashboard("mo"); break;
       case "phuay":       data = getRiverDashboard("phuay"); break;
       case "stations":    data = getStations(params.river); break;
+      case "stationlist": data = getStationListPublic(); break;  // ใช้ใน login screen
       case "water":       data = getWaterLevels(params.station_id, parseInt(params.days||"7")); break;
       case "rain":        data = getRainfall(parseInt(params.days||"7")); break;
       case "reservoir":   data = getReservoirs(); break;
@@ -233,15 +313,36 @@ function getDailyReport(targetDate) {
 // ===== WRITE =====
 
 function saveWaterLevel(p) {
-  const sheet=ss().getSheetByName(SHEET_WATER), headers=getHeaders(sheet);
-  sheet.appendRow(headers.map(h=>p[h]||""));
-  return {ok:true,message:"บันทึกข้อมูลระดับน้ำเรียบร้อย",station_id:p.station_id};
+  const sheet = ss().getSheetByName(SHEET_WATER);
+  const headers = getHeaders(sheet);
+  // ใช้ != null แทน || "" เพื่อยอมรับค่า 0 / "0"
+  const row = headers.map(h => {
+    const v = p[h];
+    return (v === undefined || v === null) ? "" : v;
+  });
+  sheet.appendRow(row);
+  return {
+    ok: true,
+    message: "บันทึกข้อมูลระดับน้ำ " + (p.station_id||"") + " เรียบร้อย",
+    station_id: p.station_id,
+    recorded: { date:p.date, time:p.time, level:p.level, recorder:p.recorder }
+  };
 }
 
 function saveRainfall(p) {
-  const sheet=ss().getSheetByName(SHEET_RAIN), headers=getHeaders(sheet);
-  sheet.appendRow(headers.map(h=>p[h]||""));
-  return {ok:true,message:"บันทึกข้อมูลฝนเรียบร้อย"};
+  const sheet = ss().getSheetByName(SHEET_RAIN);
+  const headers = getHeaders(sheet);
+  const row = headers.map(h => {
+    const v = p[h];
+    return (v === undefined || v === null) ? "" : v;
+  });
+  sheet.appendRow(row);
+  return {
+    ok: true,
+    message: "บันทึกข้อมูลฝน " + (p.amphoe||"") + " เรียบร้อย",
+    amphoe: p.amphoe,
+    recorded: { date:p.date, rain_24hr:p.rain_24hr, recorder:p.recorder }
+  };
 }
 
 function saveReservoir(p) {
@@ -284,6 +385,264 @@ function saveDailyReport(p) {
   }
   sheet.appendRow(headers.map(h=>h==="saved_at"?new Date():(p[h]||"")));
   return {ok:true,message:"บันทึกรายงานวันที่ "+dateStr};
+}
+
+// ===== PIN MANAGEMENT =====
+/** ระบบ PIN แยกตามสถานี/อำเภอ + Admin master PIN */
+
+function ensureStationPinsSheet_() {
+  const ss_obj = ss();
+  let sh = ss_obj.getSheetByName(SHEET_PINS);
+  if (!sh) {
+    sh = ss_obj.insertSheet(SHEET_PINS);
+    sh.appendRow(["station_id","pin","recorder_name","phone","last_changed","last_used","note"]);
+    sh.getRange("A1:G1").setFontWeight("bold").setBackground("#1e3a8a").setFontColor("#fff");
+    sh.setFrozenRows(1);
+  } else if (sh.getLastRow() === 0) {
+    sh.appendRow(["station_id","pin","recorder_name","phone","last_changed","last_used","note"]);
+  }
+  return sh;
+}
+
+function ensureAmphoePinsSheet_() {
+  const ss_obj = ss();
+  let sh = ss_obj.getSheetByName(SHEET_AMPHOE_PINS);
+  if (!sh) {
+    sh = ss_obj.insertSheet(SHEET_AMPHOE_PINS);
+    sh.appendRow(["amphoe","pin","recorder_name","phone","last_changed","last_used","note"]);
+    sh.getRange("A1:G1").setFontWeight("bold").setBackground("#065f46").setFontColor("#fff");
+    sh.setFrozenRows(1);
+  } else if (sh.getLastRow() === 0) {
+    sh.appendRow(["amphoe","pin","recorder_name","phone","last_changed","last_used","note"]);
+  }
+  return sh;
+}
+
+function getAdminPin_() {
+  return PropertiesService.getScriptProperties().getProperty(ADMIN_PIN_KEY) || "";
+}
+
+function verifyAdminPin(pin) {
+  const expected = getAdminPin_();
+  if (!expected) return false;
+  return String(pin || "").trim() === String(expected).trim();
+}
+
+function getStationPinRow_(stationId) {
+  const sh = ensureStationPinsSheet_();
+  if (sh.getLastRow() < 2) return null;
+  const data = sh.getRange(2, 1, sh.getLastRow()-1, sh.getLastColumn()).getValues();
+  const target = String(stationId || "").toUpperCase().trim();
+  for (let i = 0; i < data.length; i++) {
+    if (String(data[i][0] || "").toUpperCase().trim() === target) {
+      return { row: i+2, station_id: target, pin: String(data[i][1]||""), recorder_name: data[i][2]||"", phone: data[i][3]||"", last_changed: data[i][4]||"", last_used: data[i][5]||"", note: data[i][6]||"" };
+    }
+  }
+  return null;
+}
+
+function verifyStationPin(stationId, pin) {
+  const r = getStationPinRow_(stationId);
+  if (!r || !r.pin) return false;
+  return String(pin||"").trim() === String(r.pin).trim();
+}
+
+function touchStationPinLastUsed(stationId) {
+  try {
+    const r = getStationPinRow_(stationId);
+    if (r) ensureStationPinsSheet_().getRange(r.row, 6).setValue(new Date());
+  } catch(e) {}
+}
+
+function getAmphoePinRow_(amphoe) {
+  const sh = ensureAmphoePinsSheet_();
+  if (sh.getLastRow() < 2) return null;
+  const data = sh.getRange(2, 1, sh.getLastRow()-1, sh.getLastColumn()).getValues();
+  const target = String(amphoe || "").trim();
+  for (let i = 0; i < data.length; i++) {
+    if (String(data[i][0] || "").trim() === target) {
+      return { row: i+2, amphoe: target, pin: String(data[i][1]||""), recorder_name: data[i][2]||"", phone: data[i][3]||"", last_changed: data[i][4]||"", last_used: data[i][5]||"", note: data[i][6]||"" };
+    }
+  }
+  return null;
+}
+
+function verifyAmphoePin(amphoe, pin) {
+  const r = getAmphoePinRow_(amphoe);
+  if (!r || !r.pin) return false;
+  return String(pin||"").trim() === String(r.pin).trim();
+}
+
+function touchAmphoePinLastUsed(amphoe) {
+  try {
+    const r = getAmphoePinRow_(amphoe);
+    if (r) ensureAmphoePinsSheet_().getRange(r.row, 6).setValue(new Date());
+  } catch(e) {}
+}
+
+function listStationPins() {
+  ensureStationPinsSheet_();
+  const stations = getStations();
+  const out = [];
+  stations.forEach(s => {
+    const row = getStationPinRow_(s.station_id);
+    out.push({
+      station_id: s.station_id,
+      name: s.name,
+      river: s.river,
+      amphoe: s.amphoe,
+      pin: row ? row.pin : "",
+      recorder_name: row ? row.recorder_name : "",
+      phone: row ? row.phone : "",
+      last_changed: row ? (row.last_changed ? Utilities.formatDate(new Date(row.last_changed), "Asia/Bangkok", "yyyy-MM-dd HH:mm") : "") : "",
+      last_used: row ? (row.last_used ? Utilities.formatDate(new Date(row.last_used), "Asia/Bangkok", "yyyy-MM-dd HH:mm") : "") : "",
+      note: row ? row.note : "",
+      has_pin: !!(row && row.pin)
+    });
+  });
+  return out;
+}
+
+function setStationPin_(stationId, newPin, recorderName) {
+  if (!stationId) return { ok:false, error:"ไม่ระบุรหัสสถานี" };
+  if (!newPin || String(newPin).trim().length < 3) return { ok:false, error:"PIN ต้องมีอย่างน้อย 3 ตัวอักษร" };
+  const sh = ensureStationPinsSheet_();
+  const row = getStationPinRow_(stationId);
+  const now = new Date();
+  if (row) {
+    sh.getRange(row.row, 2).setValue(String(newPin).trim());
+    if (recorderName !== undefined && recorderName !== null) sh.getRange(row.row, 3).setValue(recorderName);
+    sh.getRange(row.row, 5).setValue(now);
+  } else {
+    sh.appendRow([String(stationId).toUpperCase(), String(newPin).trim(), recorderName||"", "", now, "", ""]);
+  }
+  return { ok:true, message:"ตั้ง PIN สำหรับ " + stationId + " เรียบร้อย", station_id: stationId };
+}
+
+function initStationPins() {
+  ensureStationPinsSheet_();
+  const stations = getStations();
+  const added = [];
+  stations.forEach(s => {
+    const existing = getStationPinRow_(s.station_id);
+    if (!existing || !existing.pin) {
+      const pin = String(Math.floor(1000 + Math.random()*9000));
+      setStationPin_(s.station_id, pin, "");
+      added.push({station_id: s.station_id, name: s.name, pin: pin});
+    }
+  });
+  return { ok:true, message:"สร้าง PIN ใหม่ " + added.length + " สถานี (สถานีอื่นมี PIN อยู่แล้ว)", added: added };
+}
+
+function listAmphoePins() {
+  ensureAmphoePinsSheet_();
+  return AMPHOES.map(am => {
+    const row = getAmphoePinRow_(am);
+    return {
+      amphoe: am,
+      pin: row ? row.pin : "",
+      recorder_name: row ? row.recorder_name : "",
+      phone: row ? row.phone : "",
+      last_changed: row ? (row.last_changed ? Utilities.formatDate(new Date(row.last_changed), "Asia/Bangkok", "yyyy-MM-dd HH:mm") : "") : "",
+      last_used: row ? (row.last_used ? Utilities.formatDate(new Date(row.last_used), "Asia/Bangkok", "yyyy-MM-dd HH:mm") : "") : "",
+      has_pin: !!(row && row.pin)
+    };
+  });
+}
+
+function setAmphoePin_(amphoe, newPin, recorderName) {
+  if (!amphoe) return { ok:false, error:"ไม่ระบุอำเภอ" };
+  if (!newPin || String(newPin).trim().length < 3) return { ok:false, error:"PIN ต้องมีอย่างน้อย 3 ตัวอักษร" };
+  const sh = ensureAmphoePinsSheet_();
+  const row = getAmphoePinRow_(amphoe);
+  const now = new Date();
+  if (row) {
+    sh.getRange(row.row, 2).setValue(String(newPin).trim());
+    if (recorderName !== undefined && recorderName !== null) sh.getRange(row.row, 3).setValue(recorderName);
+    sh.getRange(row.row, 5).setValue(now);
+  } else {
+    sh.appendRow([amphoe, String(newPin).trim(), recorderName||"", "", now, "", ""]);
+  }
+  return { ok:true, message:"ตั้ง PIN สำหรับอำเภอ " + amphoe + " เรียบร้อย", amphoe: amphoe };
+}
+
+function initAmphoePins() {
+  ensureAmphoePinsSheet_();
+  const added = [];
+  AMPHOES.forEach(am => {
+    const existing = getAmphoePinRow_(am);
+    if (!existing || !existing.pin) {
+      const pin = String(Math.floor(1000 + Math.random()*9000));
+      setAmphoePin_(am, pin, "");
+      added.push({amphoe: am, pin: pin});
+    }
+  });
+  return { ok:true, message:"สร้าง PIN ใหม่ " + added.length + " อำเภอ", added: added };
+}
+
+/** ใช้ใน Login screen — รายชื่อสถานี + สถานะมี PIN หรือยัง */
+function getStationListPublic() {
+  const stations = getStations();
+  ensureStationPinsSheet_();
+  const pinMap = {};
+  try {
+    const sh = ensureStationPinsSheet_();
+    if (sh.getLastRow() >= 2) {
+      const data = sh.getRange(2,1,sh.getLastRow()-1,3).getValues();
+      data.forEach(r => pinMap[String(r[0]||"").toUpperCase().trim()] = { has_pin: !!String(r[1]||"").trim(), recorder: r[2]||"" });
+    }
+  } catch(e) {}
+  return stations.map(s => ({
+    station_id: s.station_id, name: s.name, river: s.river, amphoe: s.amphoe,
+    bank_level: s.bank_level, warn_level: s.warn_level,
+    has_pin: !!(pinMap[s.station_id] && pinMap[s.station_id].has_pin),
+    recorder_name: (pinMap[s.station_id] && pinMap[s.station_id].recorder) || ""
+  }));
+}
+
+/** Context หลังล็อกอินสำเร็จ — ข้อมูลสถานี + ระดับน้ำล่าสุด + ประวัติ 7 บันทึก */
+function getStationContext(stationId) {
+  const stations = getStations();
+  const station = stations.find(s => String(s.station_id||"").toUpperCase() === String(stationId).toUpperCase());
+  if (!station) return { error:"ไม่พบสถานี " + stationId };
+  const pinRow = getStationPinRow_(stationId);
+  const recent = getWaterLevels(stationId, 7);
+  const last = (recent && recent.length) ? recent[recent.length-1] : null;
+  const lv = last ? parseFloat(last.level) : null;
+  let status = "ไม่มีข้อมูล", statusColor = "#94a3b8";
+  if (lv !== null && !isNaN(lv)) {
+    if (lv >= parseFloat(station.bank_level)) { status = "วิกฤติ — ล้นตลิ่ง"; statusColor = "#dc2626"; }
+    else if (lv >= parseFloat(station.warn_level)) { status = "เฝ้าระวัง"; statusColor = "#f59e0b"; }
+    else { status = "ปกติ"; statusColor = "#10b981"; }
+  }
+  return {
+    station_id: station.station_id, name: station.name, river: station.river,
+    village: station.village, amphoe: station.amphoe,
+    bank_level: station.bank_level, warn_level: station.warn_level, crit_level: station.crit_level,
+    lat: station.lat, lon: station.lon,
+    recorder_name: pinRow ? pinRow.recorder_name : "",
+    last_level: lv, last_date: last ? last.date : "", last_time: last ? last.time : "",
+    last_recorder: last ? last.recorder : "", last_remark: last ? last.remark : "",
+    status: status, status_color: statusColor,
+    recent: recent.slice(-7).reverse()
+  };
+}
+
+function getAmphoeContext(amphoe) {
+  const pinRow = getAmphoePinRow_(amphoe);
+  const rain = getRainfall(7);
+  const forAmphoe = rain.filter(r => String(r.amphoe||"") === String(amphoe));
+  const last = forAmphoe.length ? forAmphoe[forAmphoe.length-1] : null;
+  return {
+    amphoe: amphoe,
+    recorder_name: pinRow ? pinRow.recorder_name : "",
+    last_rain_24hr: last ? last.rain_24hr : null,
+    last_rain_7day: last ? last.rain_7day : null,
+    last_rain_month: last ? last.rain_month : null,
+    last_date: last ? last.date : "",
+    last_recorder: last ? last.recorder : "",
+    recent: forAmphoe.slice(-7).reverse()
+  };
 }
 
 // ===== SETUP =====
