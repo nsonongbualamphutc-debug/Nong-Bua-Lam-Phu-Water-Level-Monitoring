@@ -1,0 +1,93 @@
+/* ============================================================
+ *  theme.css — สไตล์โครงร่วม (header / nav / main / footer)
+ *  ระบบแดชบอร์ดสถานการณ์น้ำ จังหวัดหนองบัวลำภู
+ *  ใช้ร่วมกันโดย: reservoir / mo / mong / phuay / input
+ *  หมายเหตุ: ตัวแปรสี (--bg,--line,--river,--brand,--muted,--shadow ฯลฯ)
+ *            ถูกประกาศไว้ใน :root ของแต่ละหน้าอยู่แล้ว
+ * ============================================================ */
+
+/* ── BASE ── */
+html,body{
+  font-family:'Sarabun',sans-serif;
+  background:var(--bg);
+  color:var(--ink);
+  min-height:100vh;
+}
+
+/* ── HEADER ── */
+header{
+  background:linear-gradient(135deg,#0c1e3d 0%,#0c4a6e 55%,#075985 100%);
+  color:#fff;position:sticky;top:0;z-index:1000;
+  box-shadow:0 4px 20px rgba(0,0,0,.25);
+}
+header::after{
+  content:"";display:block;height:3px;
+  background:linear-gradient(90deg,#0ea5e9,#38bdf8,#7dd3fc,#0ea5e9);
+  background-size:200% 100%;animation:shimmer 3s linear infinite;
+}
+@keyframes shimmer{to{background-position:-200% 0;}}
+
+.hdr-inner{
+  max-width:1600px;margin:0 auto;display:flex;align-items:center;
+  justify-content:space-between;padding:14px 24px;gap:16px;flex-wrap:wrap;
+}
+.hdr-brand{display:flex;align-items:center;gap:14px;}
+.hdr-logo{
+  width:50px;height:50px;border-radius:14px;
+  background:linear-gradient(135deg,rgba(56,189,248,.3),rgba(14,165,233,.15));
+  border:1px solid rgba(125,211,252,.4);
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 0 20px rgba(56,189,248,.3);
+}
+.hdr-title{font-size:20px;font-weight:800;font-family:'Kanit',sans-serif;}
+.hdr-sub{font-size:11px;color:#bae6fd;opacity:.8;margin-top:2px;letter-spacing:.5px;}
+
+.hdr-right{display:flex;align-items:center;gap:12px;}
+.hdr-badge{
+  display:flex;align-items:center;gap:8px;
+  background:rgba(0,0,0,.25);border:1px solid rgba(125,211,252,.3);
+  padding:7px 14px;border-radius:10px;font-size:12px;
+}
+.hdr-badge .dot{
+  width:8px;height:8px;border-radius:50%;background:#22c55e;
+  box-shadow:0 0 8px #22c55e;animation:blink 1.5s ease-in-out infinite;
+}
+@keyframes blink{50%{opacity:.4;transform:scale(.8);}}
+.hdr-badge .dot.warn{background:#fbbf24;box-shadow:0 0 8px #fbbf24;}
+.hdr-badge .dot.crit{background:#ef4444;box-shadow:0 0 10px #ef4444;}
+.hdr-time{font-family:'Courier New',monospace;font-size:13px;color:#bae6fd;letter-spacing:1px;}
+
+/* ปุ่มไอคอนบน header (รีเฟรช / สลับธีม) */
+.hdr-actions{display:flex;align-items:center;gap:8px;}
+.hdr-icon-btn{
+  width:36px;height:36px;border-radius:10px;
+  border:1px solid rgba(255,255,255,.25);
+  background:rgba(255,255,255,.12);color:#fff;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;font-size:16px;
+  transition:background .2s;
+}
+.hdr-icon-btn:hover{background:rgba(255,255,255,.25);}
+.hdr-icon-btn:focus-visible{outline:2px solid #fff;outline-offset:2px;}
+
+/* ── NAV ── */
+nav{background:#fff;border-bottom:1px solid var(--line);}
+.nav-inner{max-width:1600px;margin:0 auto;display:flex;gap:0;padding:0 24px;overflow-x:auto;}
+nav a{
+  padding:14px 20px;color:var(--muted);text-decoration:none;
+  font-size:14px;font-weight:500;white-space:nowrap;
+  border-bottom:3px solid transparent;transition:all .2s;
+}
+nav a:hover{color:var(--river);}
+nav a.active{color:var(--brand);border-bottom-color:var(--river);font-weight:700;}
+
+/* ── MAIN ── */
+main{max-width:1600px;margin:0 auto;padding:24px;}
+
+/* ── FOOTER ── */
+footer{background:#0f172a;color:#94a3b8;padding:24px;text-align:center;font-size:12px;}
+footer strong{color:#fff;}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:8px;height:6px;}
+::-webkit-scrollbar-track{background:#f1f5f9;}
+::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:4px;}
